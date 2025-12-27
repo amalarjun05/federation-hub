@@ -2,13 +2,16 @@ import { cn } from "@/lib/utils";
 import { 
   Bell, Menu, X, Shield, Search, Settings,
   LayoutDashboard, Receipt, Vote, BookOpen, CheckSquare, 
-  Video, Users, CalendarDays, LogOut
+  Video, Users, CalendarDays, LogOut, Loader2
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { UserAvatar } from "./UserAvatar";
 import { StatusBadge } from "./StatusBadge";
 import { DEFAULT_NOTIFICATIONS, Notification } from "@/lib/data";
 import { loadFromStorage, saveToStorage } from "@/lib/storage";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 interface NavbarProps {
   activeTab: string;
@@ -36,12 +39,17 @@ export function Navbar({ activeTab, setActiveTab, userData }: NavbarProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>(() => 
     loadFromStorage('akef_notifications', DEFAULT_NOTIFICATIONS)
   );
   
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
+  
+  const { signOut, profile } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -73,6 +81,44 @@ export function Navbar({ activeTab, setActiveTab, userData }: NavbarProps) {
       urgent: "text-destructive",
     };
     return colors[type];
+  };
+
+  const handleSignOut = async () => {
+    setIsLoggingOut(true);
+    try {
+      await signOut();
+      toast({
+        title: 'Signed out',
+        description: 'You have been successfully signed out.',
+      });
+      navigate('/auth');
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to sign out. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
+
+  const getRoleBadgeVariant = (role: string): 'success' | 'warning' | 'default' => {
+    if (role === 'super_admin') return 'success';
+    if (role === 'state_member') return 'warning';
+    return 'default';
+  };
+
+  const getRoleDisplayName = (role: string): string => {
+    switch (role) {
+      case 'super_admin':
+        return 'Super Admin';
+      case 'state_member':
+        return 'State Member';
+      case 'employee':
+      default:
+        return 'Employee';
+    }
   };
 
   return (
@@ -190,7 +236,7 @@ export function Navbar({ activeTab, setActiveTab, userData }: NavbarProps) {
                 onClick={() => setIsProfileOpen(!isProfileOpen)}
                 className="flex items-center gap-2 px-2 py-1.5 rounded-full bg-secondary border border-border hover:border-primary/50 transition-colors"
               >
-                <UserAvatar name={userData.name} size="md" status="online" />
+                <UserAvatar name={userData.name} size="md" status="online" src={profile?.avatar_url || undefined} />
                 <div className="hidden sm:flex flex-col items-start">
                   <span className="text-xs font-bold text-foreground leading-none">{userData.name}</span>
                   <span className="text-[10px] text-primary leading-none mt-0.5">{userData.designation}</span>
@@ -201,11 +247,11 @@ export function Navbar({ activeTab, setActiveTab, userData }: NavbarProps) {
                 <div className="absolute right-0 mt-2 w-56 glass-strong rounded-xl shadow-2xl border border-border animate-scale-in overflow-hidden">
                   <div className="p-4 border-b border-border">
                     <div className="flex items-center gap-3">
-                      <UserAvatar name={userData.name} size="lg" status="online" />
+                      <UserAvatar name={userData.name} size="lg" status="online" src={profile?.avatar_url || undefined} />
                       <div>
                         <p className="font-bold text-foreground">{userData.name}</p>
-                        <StatusBadge variant="success" size="sm">
-                          {userData.role.replace('_', ' ')}
+                        <StatusBadge variant={getRoleBadgeVariant(userData.role)} size="sm">
+                          {getRoleDisplayName(userData.role)}
                         </StatusBadge>
                       </div>
                     </div>
@@ -217,8 +263,13 @@ export function Navbar({ activeTab, setActiveTab, userData }: NavbarProps) {
                     >
                       <Settings size={16} /> Settings
                     </button>
-                    <button className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-colors">
-                      <LogOut size={16} /> Sign Out
+                    <button 
+                      onClick={handleSignOut}
+                      disabled={isLoggingOut}
+                      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                    >
+                      {isLoggingOut ? <Loader2 size={16} className="animate-spin" /> : <LogOut size={16} />}
+                      {isLoggingOut ? 'Signing out...' : 'Sign Out'}
                     </button>
                   </div>
                 </div>
