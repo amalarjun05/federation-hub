@@ -15,12 +15,12 @@ const TOOLS = [
   },
   { 
     id: 'email_craft', 
-    name: "Email Craft", 
-    desc: "Professional email generator", 
-    icon: Mail, 
+    name: "Email Designer Studio", 
+    desc: "Professional email designer", 
+    icon: Mail,
     color: "text-purple-400",
     bgColor: "bg-purple-400/10",
-    link: "https://email-craft-bice.vercel.app/" 
+    link: "https://email-designer-studio.vercel.app/"
   }
 ];
 

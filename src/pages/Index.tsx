@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Navbar } from "@/components/portal/Navbar";
-import { ChatWidget } from "@/components/portal/ChatWidget";
+import { EnhancedChatWidget } from "@/components/portal/EnhancedChatWidget";
 import { DashboardView } from "@/components/portal/DashboardView";
 import { TeamView } from "@/components/portal/TeamView";
 import { FinanceView } from "@/components/portal/FinanceView";
@@ -10,17 +10,31 @@ import { TasksView } from "@/components/portal/TasksView";
 import { MeetingsView } from "@/components/portal/MeetingsView";
 import { LeaveView } from "@/components/portal/LeaveView";
 import { SettingsView } from "@/components/portal/SettingsView";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const { profile, role, user } = useAuth();
 
   const userData = {
-    name: "Arjun Kumar",
-    role: "STATE_ADMIN",
-    district: "State Office",
-    designation: "General Secretary",
-    uid: "test-admin-01"
+    name: profile?.full_name || user?.email?.split('@')[0] || 'User',
+    role: role || 'employee',
+    district: profile?.district || 'Not set',
+    designation: profile?.designation || getRoleDisplayName(role),
+    uid: user?.id || ''
   };
+
+  function getRoleDisplayName(role: string | null): string {
+    switch (role) {
+      case 'super_admin':
+        return 'Super Admin';
+      case 'state_member':
+        return 'State Member';
+      case 'employee':
+      default:
+        return 'Employee';
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30 selection:text-foreground">
@@ -48,7 +62,7 @@ const Index = () => {
       </main>
 
       {/* Floating Chat Widget */}
-      <ChatWidget currentUser={{ name: userData.name, uid: userData.uid }} />
+      <EnhancedChatWidget />
     </div>
   );
 };
