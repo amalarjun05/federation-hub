@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Invoice & Quotation System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Montserrat:wght@400;700&family=Playfair+Display:wght@400;700&family=Roboto+Mono:wght@400;500&display=swap');
+        
+        :root { font-family: 'Inter', sans-serif; }
+        
+        /* Font Styles */
+        .font-modern { font-family: 'Inter', sans-serif; }
+        .font-classic { font-family: 'Playfair Display', serif; }
+        .font-tech { font-family: 'Roboto Mono', monospace; }
+
+        .header-bg { background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%); }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+        .rich-content ul { list-style-type: disc; margin-left: 1.2em; }
+        .rich-content ol { list-style-type: decimal; margin-left: 1.2em; }
+
+        /* --- PRINT & PDF FORMATTING --- */
+        @page {
+            size: A4;
+            margin: 0;
+        }
+
+        @media print {
+            body { background: white !important; -webkit-print-color-adjust: exact; }
+            .no-print { display: none !important; }
+            #app-container { display: block !important; padding: 0 !important; margin: 0 !important; }
+            #editor-pane { display: none !important; }
+            #preview-pane { width: 100% !important; padding: 0 !important; height: auto !important; overflow: visible !important; display: block !important; }
+            #document-preview { 
+                box-shadow: none !important; 
+                margin: 0 !important; 
+                width: 210mm !important; 
+                height: auto !important;
+                min-height: 297mm !important;
+                border: none !important;
+                transform: none !important;
+                padding: 15mm !important; /* Internal page margin */
+            }
+            .page-break-avoid { page-break-inside: avoid; break-inside: avoid; }
+        }
+
+        /* Logic for html2pdf specifically */
+        body.generating-pdf .no-print { display: none !important; }
+        body.generating-pdf #app-container { display: block !important; }
+        body.generating-pdf #editor-pane { display: none !important; }
+        body.generating-pdf #preview-pane { width: 100% !important; padding: 0 !important; display: block !important; }
+        body.generating-pdf #document-preview { 
+            box-shadow: none !important; 
+            margin: 0 !important; 
+            width: 210mm !important;
+            padding: 15mm !important;
+            transform: none !important;
+        }
+
+        /* Screen Preview Styling */
+        #document-preview {
+            width: 210mm;
+            min-height: 297mm;
+            background: white;
+            margin: 0 auto;
+            transform-origin: top center;
+            padding: 12mm;
+        }
+
+        .theme-accent-bg { transition: background-color 0.3s; }
+        .theme-accent-text { transition: color 0.3s; }
+
+        @media (max-width: 1400px) {
+            #preview-pane { overflow-x: auto; }
+        }
+
+        .rich-text-editor { min-height: 40px; outline: none; }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800">
+    <div id="app-container" class="flex flex-col lg:flex-row h-screen overflow-hidden">
+        
+        <!-- LEFT: EDITOR -->
+        <div id="editor-pane" class="no-print lg:w-[480px] flex-shrink-0 bg-white border-r border-slate-200 flex flex-col h-full shadow-xl z-30">
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/80">
+                <div class="flex items-center gap-3">
+                    <div class="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center text-white font-bold">I</div>
+                    <h1 class="font-bold text-slate-900 tracking-tight">Invoice Maker</h1>
+                </div>
+                <div id="auth-indicator" class="w-2 h-2 rounded-full bg-red-400"></div>
+            </div>
+
+            <div class="flex-grow overflow-y-auto p-6 space-y-8 custom-scrollbar">
+                
+                <!-- Appearance Settings -->
+                <section class="space-y-4">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Design & Appearance</label>
+                    <div class="space-y-3">
+                        <span class="text-[10px] text-slate-500 uppercase">Theme Color</span>
+                        <div class="flex flex-wrap gap-2">
+                            <button onclick="updateDesign('color', '#64748b')" class="w-6 h-6 rounded-full bg-slate-500 border-2 border-white ring-1 ring-slate-200"></button>
+                            <button onclick="updateDesign('color', '#f97316')" class="w-6 h-6 rounded-full bg-orange-500 border-2 border-white ring-1 ring-slate-200"></button>
+                            <button onclick="updateDesign('color', '#2563eb')" class="w-6 h-6 rounded-full bg-blue-600 border-2 border-white ring-1 ring-slate-200"></button>
+                            <button onclick="updateDesign('color', '#10b981')" class="w-6 h-6 rounded-full bg-emerald-500 border-2 border-white ring-1 ring-slate-200"></button>
+                            <button onclick="updateDesign('color', '#e11d48')" class="w-6 h-6 rounded-full bg-rose-600 border-2 border-white ring-1 ring-slate-200"></button>
+                            <button onclick="updateDesign('color', '#7c3aed')" class="w-6 h-6 rounded-full bg-violet-600 border-2 border-white ring-1 ring-slate-200"></button>
+                        </div>
+                        <span class="text-[10px] text-slate-500 uppercase block mt-2">Typography</span>
+                        <div class="grid grid-cols-3 gap-2">
+                            <button onclick="updateDesign('font', 'font-modern')" class="py-1 px-2 border rounded text-[10px] hover:bg-slate-50">Modern</button>
+                            <button onclick="updateDesign('font', 'font-classic')" class="py-1 px-2 border rounded text-[10px] hover:bg-slate-50 font-serif">Classic</button>
+                            <button onclick="updateDesign('font', 'font-tech')" class="py-1 px-2 border rounded text-[10px] hover:bg-slate-50 font-mono">Tech</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Document Info -->
+                <section class="space-y-4">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Document Settings</label>
+                    <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-xl">
+                        <button onclick="setDocType('INVOICE')" id="btn-invoice" class="py-2 text-xs font-bold rounded-lg transition-all">Invoice</button>
+                        <button onclick="setDocType('QUOTATION')" id="btn-quote" class="py-2 text-xs font-bold rounded-lg transition-all">Quotation</button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 mt-4">
+                        <div class="space-y-1">
+                            <span class="text-[10px] text-slate-500">Document No.</span>
+                            <input type="text" id="document-id" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium" oninput="updateField('docId', this.value)">
+                        </div>
+                        <div class="space-y-1">
+                            <span class="text-[10px] text-slate-500">Date</span>
+                            <input type="date" id="input-date" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium" onchange="updateField('date', this.value)">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Bill From -->
+                <section class="space-y-4">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Bill From (Your Details)</label>
+                    <div class="space-y-3">
+                        <input type="text" id="from-name" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-bold" placeholder="Your Business Name" oninput="updateField('from.name', this.value)">
+                        <textarea id="from-address" rows="2" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs" placeholder="Address / Contact Details" oninput="updateField('from.address', this.value)"></textarea>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" id="from-gst" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[10px]" placeholder="GSTIN" oninput="updateField('from.gst', this.value)">
+                            <input type="text" id="from-pan" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-[10px]" placeholder="PAN" oninput="updateField('from.pan', this.value)">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Bill To -->
+                <section class="space-y-4">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Bill To (Client Details)</label>
+                    <textarea id="input-client" rows="3" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-slate-200 outline-none resize-none" placeholder="Client Name, Company, Address..." oninput="updateField('client.info', this.value)"></textarea>
+                </section>
+
+                <!-- Line Items -->
+                <section class="space-y-4">
+                    <div class="flex justify-between items-center">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Line Items</label>
+                        <button onclick="addItem()" class="text-[10px] bg-slate-900 text-white px-3 py-1 rounded-full font-bold">+ Add Item</button>
+                    </div>
+                    <div id="editor-items-list" class="space-y-4"></div>
+                </section>
+
+                <!-- Bank Details -->
+                <section class="space-y-4">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Bank Details</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <input type="text" id="bank-name" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs" placeholder="Bank Name" oninput="updateField('bank.bankName', this.value)">
+                        <input type="text" id="bank-acc" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs" placeholder="Account No" oninput="updateField('bank.accountNo', this.value)">
+                        <input type="text" id="bank-ifsc" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs" placeholder="IFSC Code" oninput="updateField('bank.ifsc', this.value)">
+                        <input type="text" id="bank-branch" class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs" placeholder="Branch" oninput="updateField('bank.branch', this.value)">
+                    </div>
+                </section>
+
+                <!-- Branding -->
+                <section class="space-y-4 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">Logo & Signature</label>
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-medium">Company Logo</span>
+                        <button onclick="document.getElementById('logo-upload').click()" class="text-[10px] bg-white border border-slate-200 px-3 py-1.5 rounded-full font-bold shadow-sm">Upload</button>
+                        <input type="file" id="logo-upload" class="hidden" accept="image/*" onchange="handleLogoUpload(this)">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-slate-400 flex justify-between">Size <span id="lbl-logo-size">100%</span></label>
+                        <input type="range" min="30" max="150" value="100" class="w-full h-1 bg-slate-200 rounded-lg appearance-none cursor-pointer" oninput="updateLogoStyle('size', this.value)">
+                    </div>
+                    <hr class="border-slate-200">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-medium">Signature</span>
+                        <button onclick="document.getElementById('sig-upload').click()" class="text-[10px] bg-white border border-slate-200 px-3 py-1.5 rounded-full font-bold shadow-sm">Upload</button>
+                        <input type="file" id="sig-upload" class="hidden" accept="image/*" onchange="handleSignature(this)">
+                    </div>
+                </section>
+                
+                <section>
+                    <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-3">Saved History</label>
+                    <ul id="history-list" class="space-y-2"></ul>
+                </section>
+            </div>
+
+            <div class="p-6 border-t border-slate-100 bg-white grid grid-cols-2 gap-3">
+                <button onclick="saveDocument()" class="bg-slate-900 text-white py-2.5 rounded-xl text-sm font-bold shadow-sm hover:bg-slate-800 transition-all">Save Cloud</button>
+                <button onclick="resetDocument()" class="bg-red-50 text-red-600 py-2.5 rounded-xl text-sm font-bold hover:bg-red-100 transition-all">Reset</button>
+            </div>
+        </div>
+
+        <!-- RIGHT: PREVIEW -->
+        <div id="preview-pane" class="flex-grow bg-slate-200 overflow-y-auto p-4 lg:p-12 h-full flex justify-center custom-scrollbar relative">
+            
+            <div id="document-preview" class="document-container shadow-2xl relative transition-all duration-300 transform-gpu lg:scale-90 xl:scale-100 origin-top">
+                
+                <!-- PREVIEW HEADER -->
+                <div class="relative border-b border-slate-100 header-bg">
+                    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+                        <div id="p-header-circle" class="absolute -top-10 -right-10 w-48 h-48 rounded-full opacity-10 theme-accent-bg"></div>
+                    </div>
+
+                    <div class="p-12 pb-8 relative z-20">
+                        <div class="flex justify-between items-start">
+                            <div class="w-1/2 flex items-start gap-5">
+                                <div id="p-logo-container" class="w-20 h-20 rounded-xl flex items-center justify-center overflow-hidden bg-slate-50 border border-slate-100 relative">
+                                    <img id="p-logo-img" src="" class="hidden w-full h-full object-contain">
+                                    <span id="p-logo-placeholder" class="text-2xl font-bold text-slate-300">Logo</span>
+                                </div>
+                                <div id="p-from-area">
+                                    <h1 id="p-from-name" class="text-2xl font-bold text-slate-900 tracking-tight leading-none mb-2 uppercase">Your Company</h1>
+                                    <div class="text-[11px] text-slate-500 space-y-0.5 font-medium leading-relaxed">
+                                        <div id="p-from-address" class="whitespace-pre-wrap">Address line</div>
+                                        <p>GSTIN: <span id="p-from-gst" class="text-slate-700 font-bold"></span></p>
+                                        <p>PAN: <span id="p-from-pan" class="text-slate-700 font-bold"></span></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="w-1/2 text-right">
+                                <h2 id="p-doc-title" class="text-5xl font-black tracking-tighter text-slate-900 mb-6 uppercase theme-accent-text">INVOICE</h2>
+                                <div class="space-y-1.5 text-[11px]">
+                                    <div class="flex justify-end gap-4"><span class="font-bold text-slate-400 uppercase tracking-widest">Number</span><span id="p-doc-id" class="font-mono font-bold text-slate-800 text-sm"></span></div>
+                                    <div class="flex justify-end gap-4"><span class="font-bold text-slate-400 uppercase tracking-widest">Date</span><span id="p-date" class="font-semibold text-slate-800 text-sm"></span></div>
+                                    <div class="flex justify-end gap-4"><span class="font-bold text-slate-400 uppercase tracking-widest text-slate-300">Due Date</span><span id="p-due-date" class="font-medium text-slate-500 text-sm"></span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PREVIEW BILL TO -->
+                <div class="p-12 py-8 relative">
+                    <p id="p-lbl-bill-to" class="text-xs font-bold uppercase tracking-widest mb-3 theme-accent-text">Bill To</p>
+                    <div id="p-client-info" class="text-sm text-slate-600 leading-relaxed font-medium whitespace-pre-wrap max-w-sm"></div>
+                </div>
+
+                <!-- PREVIEW TABLE -->
+                <div class="px-12 flex-grow">
+                    <table class="w-full border-collapse">
+                        <thead>
+                            <tr id="p-table-header" class="text-white text-[10px] font-bold uppercase tracking-widest text-left theme-accent-bg">
+                                <th class="py-3 px-4 rounded-l-lg w-1/2">Description</th>
+                                <th class="py-3 px-4 text-center">Qty</th>
+                                <th class="py-3 px-4 text-right">Rate</th>
+                                <th class="py-3 px-4 text-right rounded-r-lg">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="p-items-body" class="text-sm border-b border-slate-100"></tbody>
+                    </table>
+                </div>
+
+                <!-- PREVIEW FOOTER -->
+                <div class="p-12 mt-auto">
+                    <div class="flex justify-between items-start gap-12">
+                        <div class="w-1/2 space-y-6 text-[11px] text-slate-500">
+                            <div class="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                                <p class="font-bold text-slate-800 uppercase mb-2 flex items-center gap-2">
+                                    <span id="p-bank-icon" class="w-1 h-3.5 rounded-full theme-accent-bg"></span> Bank Details
+                                </p>
+                                <div id="p-bank-details" class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5">
+                                    <span>Bank:</span> <span id="p-bank-name" class="font-semibold text-slate-700 uppercase"></span>
+                                    <span>Account:</span> <span id="p-bank-acc" class="font-semibold text-slate-700"></span>
+                                    <span>IFSC:</span> <span id="p-bank-ifsc" class="font-semibold text-slate-700 uppercase"></span>
+                                    <span>Branch:</span> <span id="p-bank-branch" class="font-semibold text-slate-700 uppercase"></span>
+                                </div>
+                            </div>
+                            <div>
+                                <p class="font-bold text-slate-400 uppercase mb-1 tracking-wider">Amount in Words</p>
+                                <p id="p-amount-words" class="font-medium text-slate-700 italic leading-relaxed"></p>
+                            </div>
+                            <div>
+                                <p class="font-bold text-slate-400 uppercase mb-1 tracking-wider">Terms & Conditions</p>
+                                <div id="p-notes" class="whitespace-pre-wrap leading-relaxed text-[10px]"></div>
+                            </div>
+                        </div>
+
+                        <div class="w-1/2">
+                            <div class="bg-slate-50 p-6 rounded-xl border border-slate-100 space-y-3">
+                                <div class="flex justify-between text-slate-600"><span>Subtotal</span><span id="p-subtotal" class="font-semibold text-slate-800"></span></div>
+                                <div class="flex justify-between items-center text-slate-600">
+                                    <span>Tax (<span id="p-tax-label"></span>%)</span>
+                                    <span id="p-tax-amount" class="font-semibold text-slate-800"></span>
+                                </div>
+                                <div class="h-px bg-slate-200 my-2"></div>
+                                <div class="flex justify-between items-end">
+                                    <span class="text-sm font-bold text-slate-900 uppercase tracking-widest">Total</span>
+                                    <span id="p-total" class="text-3xl font-black text-slate-900 tracking-tight"></span>
+                                </div>
+                            </div>
+                            <div class="mt-8 text-right flex flex-col items-end">
+                                <div class="h-16 flex items-end justify-end mb-1"><img id="p-sig-img" src="" class="hidden max-h-full object-contain"></div>
+                                <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest border-t border-slate-100 pt-2 inline-block min-w-[120px]">Authorized Signatory</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="p-footer-bar" class="h-2 w-full mt-4 theme-accent-bg"></div>
+            </div>
+
+            <!-- FLOATING ACTIONS -->
+            <div class="no-print fixed bottom-8 right-8 flex flex-col gap-3 z-50">
+                <button onclick="downloadPDF()" class="bg-slate-900 text-white p-4 rounded-full shadow-2xl hover:scale-110 transition-transform active:scale-95 group">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        <span class="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 font-bold whitespace-nowrap">Download PDF</span>
+                    </div>
+                </button>
+                <button onclick="window.print()" class="bg-white text-slate-900 border border-slate-200 p-4 rounded-full shadow-2xl hover:scale-110 transition-transform active:scale-95 group">
+                    <div class="flex items-center gap-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                        <span class="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 font-bold whitespace-nowrap">Print Document</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Suggestions Datalist -->
+    <datalist id="item-suggestions">
+        <option value="Gaming Equipment Rental">
+        <option value="Arena Production">
+        <option value="Content Creation">
+        <option value="Broadcasting Services">
+        <option value="Logistics Support">
+        <option value="Consultancy Fee">
+        <option value="Software License">
+    </datalist>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, collection, query, onSnapshot, addDoc, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Logic Helpers (Declared first to avoid hoisting errors)
+        function calcDue(d) { 
+            if(!d) return '';
+            const x = new Date(d); 
+            x.setDate(x.getDate() + 7); 
+            return x.toISOString().split('T')[0]; 
+        }
+
+        function formatDate(d) { 
+            if(!d) return ''; 
+            return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-'); 
+        }
+
+        function formatMoney(n) { 
+            return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(n); 
+        }
+
+        function numToWords(n) {
+            if(!n || n <= 0) return 'Zero Rupees Only';
+            const units = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+            const tens = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+            const convert = (num) => {
+                if(num < 20) return units[num];
+                if(num < 100) return tens[Math.floor(num/10)] + (num%10 ? " " + units[num%10] : "");
+                if(num < 1000) return units[Math.floor(num/100)] + " Hundred" + (num%100 ? " " + convert(num%100) : "");
+                if(num < 100000) return convert(Math.floor(num/1000)) + " Thousand" + (num%1000 ? " " + convert(num%1000) : "");
+                if(num < 10000000) return convert(Math.floor(num/100000)) + " Lakh" + (num%100000 ? " " + convert(num%100000) : "");
+                return convert(Math.floor(num/10000000)) + " Crore" + (num%10000000 ? " " + convert(num%10000000) : "");
+            };
+            return convert(Math.round(n)) + " Rupees Only";
+        }
+
+        function generateId(t, d, s) {
+            const dateObj = d ? new Date(d) : new Date();
+            const q = Math.ceil((dateObj.getMonth()+1)/3);
+            const prefix = t === 'INVOICE' ? 'INV' : 'QTN';
+            const suffix = s || Math.floor(Math.random()*9000+1000);
+            return `${prefix}-Q${q}-${suffix}`;
+        }
+
+        function initData() {
+            const d = new Date().toISOString().split('T')[0];
+            return {
+                type: 'INVOICE', docId: generateId('INVOICE', d), date: d, dueDate: calcDue(d),
+                from: { name: '', address: '', gst: '', pan: '' },
+                client: { info: '' }, items: [{ desc: '', qty: 1, rate: 0, details: '' }],
+                bank: { bankName: '', accountNo: '', ifsc: '', branch: '' },
+                taxRate: 18, notes: 'Payment is due within 7 days.', logo: { src: null, size: 100 }, sig: { src: null, size: 100 },
+                design: { color: '#64748b', font: 'font-modern' }
+            };
+        }
+
+        // --- Firebase Config ---
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "" }; 
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'generic-invoice';
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let db, auth, userId = null, data = initData(), currentId = null;
+
+        // --- Editor Interface ---
+        window.updateField = function(k, v) {
+            if(k.includes('.')) { 
+                const parts = k.split('.');
+                let current = data;
+                for (let i = 0; i < parts.length - 1; i++) {
+                    current = current[parts[i]];
+                }
+                current[parts[parts.length - 1]] = v;
+            } else {
+                data[k] = (k === 'taxRate') ? parseFloat(v || 0) : v;
+            }
+
+            if(k === 'date') {
+                data.dueDate = calcDue(v);
+                data.docId = generateId(data.type, v, data.docId.split('-').pop());
+                const el = document.getElementById('document-id');
+                if(el) el.value = data.docId;
+            }
+            renderPreview();
+        };
+
+        window.setDocType = function(t) {
+            data.type = t;
+            const s = data.docId.split('-').pop();
+            data.docId = generateId(t, data.date, s);
+            const el = document.getElementById('document-id');
+            if(el) el.value = data.docId;
+            renderPreview();
+        };
+
+        window.updateDesign = function(k, v) { 
+            data.design[k] = v; 
+            renderPreview(); 
+        };
+
+        window.addItem = function() { 
+            data.items.push({desc:'', qty:1, rate:0, details:''}); 
+            renderEditorItems(); 
+            renderPreview(); 
+        };
+
+        window.deleteItem = function(i) { 
+            data.items.splice(i, 1); 
+            renderEditorItems(); 
+            renderPreview(); 
+        };
+
+        window.updateItem = function(i, k, v) {
+            if(k === 'qty' || k === 'rate') data.items[i][k] = parseFloat(v || 0);
+            else data.items[i][k] = v;
+            renderPreview();
+        };
+
+        window.handleLogoUpload = function(el) { 
+            const f = el.files[0]; 
+            if(f) { 
+                const r = new FileReader(); 
+                r.onload = e => { data.logo.src = e.target.result; renderPreview(); }; 
+                r.readAsDataURL(f); 
+            } 
+        };
+
+        window.updateLogoStyle = function(k,v) { 
+            data.logo[k] = v; 
+            const el = document.getElementById('lbl-logo-size'); 
+            if(el) el.innerText = v+'%'; 
+            renderPreview(); 
+        };
+
+        window.handleSignature = function(el) { 
+            const f = el.files[0]; 
+            if(f) { 
+                const r = new FileReader(); 
+                r.onload = e => { data.sig.src = e.target.result; renderPreview(); }; 
+                r.readAsDataURL(f); 
+            } 
+        };
+
+        window.formatText = function(c) {
+            document.execCommand(c, false, null);
+        };
+
+        function renderEditorItems() {
+            const list = document.getElementById('editor-items-list');
+            if(!list) return;
+            list.innerHTML = data.items.map((item, i) => `
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3 relative group">
+                    <button onclick="deleteItem(${i})" class="absolute top-2 right-2 text-slate-300 hover:text-red-500">×</button>
+                    <input type="text" list="item-suggestions" class="w-full bg-transparent border-b border-slate-200 text-sm font-bold p-1 outline-none" value="${item.desc}" placeholder="Item Name" oninput="updateItem(${i}, 'desc', this.value)">
+                    <div class="grid grid-cols-2 gap-3">
+                        <input type="number" class="w-full bg-white border border-slate-200 rounded px-2 py-1 text-xs" value="${item.qty}" placeholder="Qty" oninput="updateItem(${i}, 'qty', this.value)">
+                        <input type="number" class="w-full bg-white border border-slate-200 rounded px-2 py-1 text-xs" value="${item.rate}" placeholder="Rate" oninput="updateItem(${i}, 'rate', this.value)">
+                    </div>
+                    <div contenteditable="true" class="text-xs bg-white border border-slate-200 rounded p-2 outline-none min-h-[40px] rich-text-editor" oninput="updateItem(${i}, 'details', this.innerHTML)">${item.details}</div>
+                </div>
+            `).join('');
+        }
+
+        // --- Render Preview (A4 Sim) ---
+        function renderPreview() {
+            const docEl = document.getElementById('document-preview');
+            if(!docEl) return;
+            docEl.className = `document-container shadow-2xl relative transition-all duration-300 transform-gpu lg:scale-90 xl:scale-100 origin-top ${data.design.font}`;
+            
+            document.querySelectorAll('.theme-accent-bg').forEach(el => el.style.backgroundColor = data.design.color);
+            document.querySelectorAll('.theme-accent-text').forEach(el => el.style.color = data.design.color);
+
+            const setPreviewText = (id, text) => { const el = document.getElementById(id); if(el) el.innerText = text || ''; };
+            setPreviewText('p-doc-title', data.type);
+            setPreviewText('p-doc-id', data.docId);
+            setPreviewText('p-date', formatDate(data.date));
+            setPreviewText('p-due-date', formatDate(data.dueDate));
+            setPreviewText('p-from-name', data.from.name || 'YOUR BUSINESS NAME');
+            setPreviewText('p-from-address', data.from.address);
+            setPreviewText('p-from-gst', data.from.gst);
+            setPreviewText('p-from-pan', data.from.pan);
+            setPreviewText('p-client-info', data.client.info);
+            setPreviewText('p-notes', data.notes);
+            setPreviewText('p-bank-name', data.bank.bankName);
+            setPreviewText('p-bank-acc', data.bank.accountNo);
+            setPreviewText('p-bank-ifsc', data.bank.ifsc);
+            setPreviewText('p-bank-branch', data.bank.branch);
+
+            if(data.logo.src) {
+                const img = document.getElementById('p-logo-img');
+                const ph = document.getElementById('p-logo-placeholder');
+                const cont = document.getElementById('p-logo-container');
+                if(img) { img.src = data.logo.src; img.classList.remove('hidden'); }
+                if(ph) ph.classList.add('hidden');
+                if(cont) {
+                    const s = 5 * (data.logo.size / 100);
+                    cont.style.width = s + 'rem';
+                    cont.style.height = s + 'rem';
+                }
+            }
+
+            if(data.sig.src) {
+                const img = document.getElementById('p-sig-img');
+                if(img) {
+                    img.src = data.sig.src;
+                    img.classList.remove('hidden');
+                }
+            }
+
+            let sub = 0;
+            const tbody = document.getElementById('p-items-body');
+            if(tbody) {
+                tbody.innerHTML = data.items.map(item => {
+                    const tot = (item.qty || 0) * (item.rate || 0);
+                    sub += tot;
+                    return `<tr class="border-b border-slate-50 align-top page-break-avoid"><td class="py-4 px-4"><div class="font-bold text-slate-800">${item.desc||'Item'}</div><div class="text-[10px] text-slate-500 rich-content">${item.details}</div></td><td class="py-4 px-4 text-center">${item.qty}</td><td class="py-4 px-4 text-right">${formatMoney(item.rate)}</td><td class="py-4 px-4 text-right font-bold text-slate-900">${formatMoney(tot)}</td></tr>`;
+                }).join('');
+            }
+
+            const tax = sub * (data.taxRate/100);
+            const total = Math.round(sub + tax);
+            setPreviewText('p-subtotal', formatMoney(sub));
+            setPreviewText('p-tax-label', data.taxRate);
+            setPreviewText('p-tax-amount', formatMoney(tax));
+            setPreviewText('p-total', formatMoney(total));
+            setPreviewText('p-amount-words', numToWords(total));
+        }
+
+        // --- Export & Save ---
+        window.downloadPDF = function() {
+            document.body.classList.add('generating-pdf');
+            const el = document.getElementById('document-preview');
+            html2pdf().set({ 
+                margin: 0, 
+                filename: `${data.docId}.pdf`, 
+                image: { type: 'jpeg', quality: 0.98 }, 
+                html2canvas: { scale: 2.5, useCORS: true, width: 794 }, 
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } 
+            }).from(el).save().then(()=>document.body.classList.remove('generating-pdf'));
+        };
+
+        window.saveDocument = async function() {
+            if(!userId) return alert('Database Offline');
+            try {
+                const col = collection(db, `artifacts/${appId}/users/${userId}/invoices`);
+                const payload = { ...data, lastUpdated: serverTimestamp() };
+                if(currentId) await updateDoc(doc(db, col.path, currentId), payload);
+                else currentId = (await addDoc(col, payload)).id;
+                alert('Saved to Cloud');
+            } catch(e) { alert('Save Failed'); }
+        };
+
+        window.resetDocument = function() { 
+            if(confirm('Reset all details?')) { 
+                data = initData(); 
+                currentId = null; 
+                initForm(); 
+                renderPreview(); 
+            } 
+        };
+
+        // --- Initialization ---
+        function initForm() {
+            const safeSet = (id, val) => { const el = document.getElementById(id); if(el) el.value = val || ''; };
+            safeSet('document-id', data.docId);
+            safeSet('input-date', data.date);
+            safeSet('input-client', data.client.info);
+            safeSet('input-tax', data.taxRate);
+            safeSet('input-notes', data.notes);
+            safeSet('from-name', data.from.name);
+            safeSet('from-address', data.from.address);
+            safeSet('from-gst', data.from.gst);
+            safeSet('from-pan', data.from.pan);
+            safeSet('bank-name', data.bank.bankName);
+            safeSet('bank-acc', data.bank.accountNo);
+            safeSet('bank-ifsc', data.bank.ifsc);
+            safeSet('bank-branch', data.bank.branch);
+            renderEditorItems();
+        }
+
+        async function initFB() {
+            if(!firebaseConfig.apiKey) return;
+            try {
+                const f = initializeApp(firebaseConfig);
+                db = getFirestore(f);
+                auth = getAuth(f);
+                if(initialAuthToken) await signInWithCustomToken(auth, initialAuthToken);
+                else await signInAnonymously(auth);
+                onAuthStateChanged(auth, u => { 
+                    if(u) { 
+                        userId = u.uid; 
+                        const ind = document.getElementById('auth-indicator');
+                        if(ind) ind.className = 'w-2 h-2 rounded-full bg-green-400'; 
+                        loadHistory(); 
+                    } 
+                });
+            } catch(e) {}
+        }
+
+        function loadHistory() {
+            onSnapshot(query(collection(db, `artifacts/${appId}/users/${userId}/invoices`)), s => {
+                const l = document.getElementById('history-list');
+                if(!l) return;
+                const d = s.docs.map(x => ({...x.data(), id: x.id})).sort((a,b) => (b.lastUpdated?.toMillis() || 0) - (a.lastUpdated?.toMillis() || 0));
+                if(!d.length) { l.innerHTML = '<li class="text-center italic text-[10px] text-slate-400">No docs</li>'; return; }
+                l.innerHTML = d.map(x => `<li onclick="loadDoc('${x.id}')" class="p-2 bg-slate-50 border border-transparent rounded hover:border-slate-200 cursor-pointer transition-all"><div class="flex justify-between text-[10px] font-bold"><span>${x.type}</span><span>${x.date}</span></div><div class="truncate text-[10px] opacity-60">${x.docId}</div></li>`).join('');
+                window.historyDocs = d;
+            });
+        }
+        window.loadDoc = (id) => { const d = window.historyDocs.find(x => x.id === id); if(d) { data = {...d}; currentId = id; initForm(); renderPreview(); } };
+
+        window.onload = function() { 
+            initFB(); 
+            initForm(); 
+            renderPreview(); 
+        };
+    </script>
+</body>
+</html>
