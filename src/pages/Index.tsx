@@ -4,6 +4,7 @@ import { EnhancedChatWidget } from "@/components/portal/EnhancedChatWidget";
 import { DashboardView } from "@/components/portal/DashboardView";
 import { TeamView } from "@/components/portal/TeamView";
 import { FinanceView } from "@/components/portal/FinanceView";
+import { InvoiceView } from "@/components/portal/InvoiceView";
 import { GovernanceView } from "@/components/portal/GovernanceView";
 import { LibraryView } from "@/components/portal/LibraryView";
 import { TasksView } from "@/components/portal/TasksView";
@@ -53,6 +54,7 @@ const Index = () => {
         {activeTab === "dashboard" && <DashboardView userData={userData} />}
         {activeTab === "team" && <TeamView />}
         {activeTab === "finance" && <FinanceView userData={userData} />}
+        {activeTab === "invoice" && <InvoiceView />}
         {activeTab === "governance" && <GovernanceView userData={userData} />}
         {activeTab === "library" && <LibraryView />}
         {activeTab === "tasks" && <TasksView />}
