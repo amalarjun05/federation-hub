@@ -1,9 +1,7 @@
-import { useState } from "react";
-import { BookOpen, FileText, Mail, FileSpreadsheet, ExternalLink, UploadCloud, Download, Image as ImageIcon, X } from "lucide-react";
+import { BookOpen, FileText, Mail, FileSpreadsheet, ExternalLink, UploadCloud, Download, Image as ImageIcon } from "lucide-react";
 import { GlassCard } from "./GlassCard";
 import { StatusBadge } from "./StatusBadge";
 import { ActionButton } from "./ActionButton";
-import { InvoiceView } from "./InvoiceView";
 
 const TOOLS = [
   { 
@@ -13,7 +11,7 @@ const TOOLS = [
     icon: FileSpreadsheet, 
     color: "text-accent",
     bgColor: "bg-accent/10",
-    isInternal: true
+    link: "/tools/invoice.html"
   },
   { 
     id: 'invoice', 
@@ -52,31 +50,11 @@ const DOCUMENTS = [
 ];
 
 export function LibraryView() {
-  const [showInvoiceTool, setShowInvoiceTool] = useState(false);
-
   const handleToolClick = (tool: typeof TOOLS[0]) => {
-    if (tool.isInternal) {
-      setShowInvoiceTool(true);
-    } else if (tool.link) {
+    if (tool.link) {
       window.open(tool.link, '_blank');
     }
   };
-
-  if (showInvoiceTool) {
-    return (
-      <div className="animate-fade-in">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <FileSpreadsheet className="text-accent" /> Instant Invoice Maker
-          </h2>
-          <ActionButton variant="secondary" onClick={() => setShowInvoiceTool(false)}>
-            <X size={16} /> Back to Library
-          </ActionButton>
-        </div>
-        <InvoiceView />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -109,7 +87,7 @@ export function LibraryView() {
                 <div className="flex-1 min-w-0">
                   <h4 className="font-bold text-foreground group-hover:text-primary flex items-center gap-2 transition-colors">
                     {tool.name}
-                    {!tool.isInternal && <ExternalLink size={12} className="text-muted-foreground" />}
+                    <ExternalLink size={12} className="text-muted-foreground" />
                   </h4>
                   <p className="text-xs text-muted-foreground">{tool.desc}</p>
                 </div>
