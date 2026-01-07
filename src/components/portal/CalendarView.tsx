@@ -11,20 +11,14 @@ import { cn } from "@/lib/utils";
 
 interface Event {
   id: string;
+  event_name: string | null;
   college_name: string;
-  fest_name: string | null;
   event_date: string;
-  no_of_days: number | null;
-  event_type: string | null;
-  requirement: string | null;
-  internet_access: string | null;
-  contact_name: string | null;
-  phone_number: string | null;
+  end_date: string | null;
+  category: string | null;
+  activity: string | null;
+  details: string | null;
   status: string;
-  cost: number | null;
-  update_1: string | null;
-  update_2: string | null;
-  update_3: string | null;
   created_by: string | null;
 }
 
@@ -35,29 +29,23 @@ interface CalendarViewProps {
 }
 
 const STATUS_OPTIONS = ['Pending', 'Accepted', 'Rejected', 'Awaiting Confirmation', 'Completed'];
+const CATEGORY_OPTIONS = ['Technical', 'Cultural', 'Sports', 'Academic', 'Workshop', 'Seminar', 'Other'];
 
-const initialFormState: Omit<Event, 'id' | 'created_by'> = {
+const initialFormState = {
+  event_name: '',
   college_name: '',
-  fest_name: '',
   event_date: format(new Date(), 'yyyy-MM-dd'),
-  no_of_days: 1,
-  event_type: '',
-  requirement: '',
-  internet_access: '',
-  contact_name: '',
-  phone_number: '',
+  end_date: format(new Date(), 'yyyy-MM-dd'),
+  category: '',
+  activity: '',
+  details: '',
   status: 'Pending',
-  cost: null,
-  update_1: '',
-  update_2: '',
-  update_3: '',
 };
 
 export function CalendarView({ userData }: CalendarViewProps) {
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [formData, setFormData] = useState(initialFormState);
@@ -71,7 +59,7 @@ export function CalendarView({ userData }: CalendarViewProps) {
     try {
       const { data, error } = await supabase
         .from('events')
-        .select('*')
+        .select('id, event_name, college_name, event_date, end_date, category, activity, details, status, created_by')
         .order('event_date', { ascending: true });
       
       if (error) throw error;
@@ -93,10 +81,10 @@ export function CalendarView({ userData }: CalendarViewProps) {
   }, []);
 
   const handleSave = async () => {
-    if (!formData.college_name.trim()) {
+    if (!formData.event_name?.trim()) {
       toast({
         title: 'Validation Error',
-        description: 'College/Organization name is required',
+        description: 'Event name is required',
         variant: 'destructive',
       });
       return;
@@ -108,8 +96,14 @@ export function CalendarView({ userData }: CalendarViewProps) {
         const { error } = await supabase
           .from('events')
           .update({
-            ...formData,
-            cost: formData.cost || null,
+            event_name: formData.event_name,
+            college_name: formData.college_name || formData.event_name,
+            event_date: formData.event_date,
+            end_date: formData.end_date || null,
+            category: formData.category || null,
+            activity: formData.activity || null,
+            details: formData.details || null,
+            status: formData.status,
           })
           .eq('id', editingEvent.id);
         
@@ -119,8 +113,14 @@ export function CalendarView({ userData }: CalendarViewProps) {
         const { error } = await supabase
           .from('events')
           .insert({
-            ...formData,
-            cost: formData.cost || null,
+            event_name: formData.event_name,
+            college_name: formData.college_name || formData.event_name,
+            event_date: formData.event_date,
+            end_date: formData.end_date || null,
+            category: formData.category || null,
+            activity: formData.activity || null,
+            details: formData.details || null,
+            status: formData.status,
             created_by: user?.id,
           });
         
@@ -168,30 +168,21 @@ export function CalendarView({ userData }: CalendarViewProps) {
   const handleEdit = (event: Event) => {
     setEditingEvent(event);
     setFormData({
-      college_name: event.college_name,
-      fest_name: event.fest_name || '',
+      event_name: event.event_name || '',
+      college_name: event.college_name || '',
       event_date: event.event_date,
-      no_of_days: event.no_of_days || 1,
-      event_type: event.event_type || '',
-      requirement: event.requirement || '',
-      internet_access: event.internet_access || '',
-      contact_name: event.contact_name || '',
-      phone_number: event.phone_number || '',
+      end_date: event.end_date || event.event_date,
+      category: event.category || '',
+      activity: event.activity || '',
+      details: event.details || '',
       status: event.status,
-      cost: event.cost,
-      update_1: event.update_1 || '',
-      update_2: event.update_2 || '',
-      update_3: event.update_3 || '',
     });
     setShowForm(true);
   };
 
   const handleAddNew = () => {
     setEditingEvent(null);
-    setFormData({
-      ...initialFormState,
-      event_date: selectedDate ? format(selectedDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'),
-    });
+    setFormData(initialFormState);
     setShowForm(true);
   };
 
@@ -232,7 +223,7 @@ export function CalendarView({ userData }: CalendarViewProps) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
         <h2 className="text-2xl font-bold text-foreground flex items-center gap-2">
-          <Calendar className="text-accent" /> Event Calendar
+          <Calendar className="text-accent" /> Events & Activities
         </h2>
         {isAdmin && (
           <ActionButton variant="secondary" onClick={handleAddNew}>
@@ -241,219 +232,152 @@ export function CalendarView({ userData }: CalendarViewProps) {
         )}
       </div>
 
-      {/* Calendar Grid */}
-      <GlassCard className="p-6">
-        {/* Month Navigation */}
-        <div className="flex items-center justify-between mb-6">
-          <button
-            onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-            className="p-2 rounded-lg hover:bg-secondary transition-colors"
-          >
-            <ChevronLeft size={20} />
-          </button>
-          <h3 className="text-xl font-bold text-foreground">
-            {format(currentMonth, 'MMMM yyyy')}
-          </h3>
-          <button
-            onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-            className="p-2 rounded-lg hover:bg-secondary transition-colors"
-          >
-            <ChevronRight size={20} />
-          </button>
-        </div>
-
-        {/* Day Headers */}
-        <div className="grid grid-cols-7 gap-1 mb-2">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="text-center text-xs font-medium text-muted-foreground py-2">
-              {day}
-            </div>
-          ))}
-        </div>
-
-        {/* Calendar Days */}
-        <div className="grid grid-cols-7 gap-1">
-          {/* Empty cells for days before the month starts */}
-          {Array.from({ length: monthStart.getDay() }).map((_, i) => (
-            <div key={`empty-${i}`} className="aspect-square" />
-          ))}
-          
-          {daysInMonth.map(day => {
-            const dayEvents = getEventsForDate(day);
-            const isSelected = selectedDate && isSameDay(day, selectedDate);
-            const isToday = isSameDay(day, new Date());
-            
-            return (
-              <button
-                key={day.toISOString()}
-                onClick={() => setSelectedDate(day)}
-                className={cn(
-                  "aspect-square p-1 rounded-lg border transition-all relative group",
-                  isSelected 
-                    ? "border-primary bg-primary/10" 
-                    : "border-transparent hover:border-border hover:bg-secondary/50",
-                  isToday && !isSelected && "border-accent/50",
-                  !isSameMonth(day, currentMonth) && "opacity-30"
-                )}
-              >
-                <span className={cn(
-                  "text-sm font-medium",
-                  isToday && "text-accent",
-                  isSelected && "text-primary"
-                )}>
-                  {format(day, 'd')}
-                </span>
-                {dayEvents.length > 0 && (
-                  <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex gap-0.5">
-                    {dayEvents.slice(0, 3).map((_, i) => (
-                      <div key={i} className="w-1 h-1 rounded-full bg-accent" />
-                    ))}
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </GlassCard>
-
-      {/* Selected Date Events */}
-      {selectedDate && (
-        <GlassCard className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-bold text-foreground">
-              Events on {format(selectedDate, 'MMMM d, yyyy')}
-            </h3>
-            {isAdmin && (
-              <ActionButton variant="ghost" size="sm" onClick={handleAddNew}>
-                <Plus size={14} /> Add
-              </ActionButton>
-            )}
-          </div>
-          
-          {getEventsForDate(selectedDate).length === 0 ? (
-            <p className="text-muted-foreground text-sm">No events scheduled for this date.</p>
-          ) : (
-            <div className="space-y-3">
-              {getEventsForDate(selectedDate).map(event => (
-                <div 
-                  key={event.id}
-                  className="p-4 bg-secondary/50 rounded-lg border border-border"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-semibold text-foreground">{event.college_name}</h4>
-                        <StatusBadge variant={getStatusColor(event.status)} size="sm">
-                          {event.status}
-                        </StatusBadge>
-                      </div>
-                      {event.fest_name && (
-                        <p className="text-sm text-accent font-medium">{event.fest_name}</p>
-                      )}
-                      {event.event_type && (
-                        <p className="text-sm text-muted-foreground">{event.event_type}</p>
-                      )}
-                      {event.contact_name && (
-                        <p className="text-xs text-muted-foreground mt-2">
-                          Contact: {event.contact_name} {event.phone_number && `• ${event.phone_number}`}
-                        </p>
-                      )}
-                    </div>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Main Events Table - 3 columns */}
+        <div className="lg:col-span-3 order-2 lg:order-1">
+          <GlassCard className="p-6 overflow-x-auto">
+            <h3 className="text-lg font-bold text-foreground mb-4">Event Schedule</h3>
+            <table className="w-full min-w-[900px]">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground">SL NO</th>
+                  <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground">START DATE</th>
+                  <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground">END DATE</th>
+                  <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground">EVENT NAME</th>
+                  <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground">CATEGORY</th>
+                  <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground">ACTIVITY</th>
+                  <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground">DETAILS</th>
+                  <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground">STATUS</th>
+                  {isAdmin && <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground">ACTIONS</th>}
+                </tr>
+              </thead>
+              <tbody>
+                {events.map((event, index) => (
+                  <tr key={event.id} className="border-b border-border/50 hover:bg-secondary/30 transition-colors">
+                    <td className="py-3 px-2 text-sm text-foreground">{index + 1}</td>
+                    <td className="py-3 px-2 text-sm text-foreground">{format(new Date(event.event_date), 'dd-MM-yyyy')}</td>
+                    <td className="py-3 px-2 text-sm text-foreground">{event.end_date ? format(new Date(event.end_date), 'dd-MM-yyyy') : '-'}</td>
+                    <td className="py-3 px-2 text-sm text-foreground font-medium">{event.event_name || event.college_name}</td>
+                    <td className="py-3 px-2 text-sm text-foreground">{event.category || '-'}</td>
+                    <td className="py-3 px-2 text-sm text-foreground">{event.activity || '-'}</td>
+                    <td className="py-3 px-2 text-sm text-foreground max-w-[200px] truncate" title={event.details || ''}>
+                      {event.details || '-'}
+                    </td>
+                    <td className="py-3 px-2">
+                      <StatusBadge variant={getStatusColor(event.status)} size="sm">
+                        {event.status}
+                      </StatusBadge>
+                    </td>
                     {isAdmin && (
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() => handleEdit(event)}
-                          className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(event.id)}
-                          className="p-2 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
+                      <td className="py-3 px-2">
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => handleEdit(event)}
+                            className="p-1.5 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(event.id)}
+                            className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
                     )}
-                  </div>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {events.length === 0 && (
+              <div className="text-center py-10">
+                <Calendar size={48} className="mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">No events scheduled yet.</p>
+              </div>
+            )}
+          </GlassCard>
+        </div>
+
+        {/* Mini Calendar - 1 column on right */}
+        <div className="lg:col-span-1 order-1 lg:order-2">
+          <GlassCard className="p-4">
+            {/* Month Navigation */}
+            <div className="flex items-center justify-between mb-4">
+              <button
+                onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
+                className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <h3 className="text-sm font-bold text-foreground">
+                {format(currentMonth, 'MMM yyyy')}
+              </h3>
+              <button
+                onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
+                className="p-1.5 rounded-lg hover:bg-secondary transition-colors"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+
+            {/* Day Headers */}
+            <div className="grid grid-cols-7 gap-1 mb-1">
+              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
+                <div key={i} className="text-center text-xs font-medium text-muted-foreground py-1">
+                  {day}
                 </div>
               ))}
             </div>
-          )}
-        </GlassCard>
-      )}
 
-      {/* All Events Table */}
-      <GlassCard className="p-6 overflow-x-auto">
-        <h3 className="text-lg font-bold text-foreground mb-4">All Events</h3>
-        <table className="w-full min-w-[800px]">
-          <thead>
-            <tr className="border-b border-border">
-              <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground">NO</th>
-              <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground">COLLEGE/ORG</th>
-              <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground">FEST NAME</th>
-              <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground">DATE</th>
-              <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground">DAYS</th>
-              <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground">TYPE</th>
-              <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground">REQUIREMENT</th>
-              <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground">CONTACT</th>
-              <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground">STATUS</th>
-              {isAdmin && <th className="text-left py-3 px-2 text-xs font-medium text-muted-foreground">ACTIONS</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {events.map((event, index) => (
-              <tr key={event.id} className="border-b border-border/50 hover:bg-secondary/30 transition-colors">
-                <td className="py-3 px-2 text-sm text-foreground">{index + 1}</td>
-                <td className="py-3 px-2 text-sm text-foreground font-medium">{event.college_name}</td>
-                <td className="py-3 px-2 text-sm text-foreground">{event.fest_name || '-'}</td>
-                <td className="py-3 px-2 text-sm text-foreground">{format(new Date(event.event_date), 'dd-MM-yy')}</td>
-                <td className="py-3 px-2 text-sm text-foreground">{event.no_of_days || 1}</td>
-                <td className="py-3 px-2 text-sm text-foreground">{event.event_type || '-'}</td>
-                <td className="py-3 px-2 text-sm text-foreground">{event.requirement || '-'}</td>
-                <td className="py-3 px-2 text-sm text-foreground">
-                  {event.contact_name || '-'}
-                  {event.phone_number && <span className="block text-xs text-muted-foreground">{event.phone_number}</span>}
-                </td>
-                <td className="py-3 px-2">
-                  <StatusBadge variant={getStatusColor(event.status)} size="sm">
-                    {event.status}
-                  </StatusBadge>
-                </td>
-                {isAdmin && (
-                  <td className="py-3 px-2">
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => handleEdit(event)}
-                        className="p-1.5 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
-                      >
-                        <Edit2 size={14} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(event.id)}
-                        className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {events.length === 0 && (
-          <div className="text-center py-10">
-            <Calendar size={48} className="mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">No events scheduled yet.</p>
-          </div>
-        )}
-      </GlassCard>
+            {/* Calendar Days */}
+            <div className="grid grid-cols-7 gap-1">
+              {Array.from({ length: monthStart.getDay() }).map((_, i) => (
+                <div key={`empty-${i}`} className="aspect-square" />
+              ))}
+              
+              {daysInMonth.map(day => {
+                const dayEvents = getEventsForDate(day);
+                const isToday = isSameDay(day, new Date());
+                
+                return (
+                  <div
+                    key={day.toISOString()}
+                    className={cn(
+                      "aspect-square flex flex-col items-center justify-center rounded-md text-xs relative",
+                      isToday && "bg-primary/20 text-primary font-bold",
+                      !isSameMonth(day, currentMonth) && "opacity-30"
+                    )}
+                  >
+                    {format(day, 'd')}
+                    {dayEvents.length > 0 && (
+                      <div className="absolute bottom-0.5 w-1 h-1 rounded-full bg-accent" />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Upcoming Events Summary */}
+            <div className="mt-4 pt-4 border-t border-border">
+              <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase">Upcoming</h4>
+              <div className="space-y-2 max-h-40 overflow-y-auto scrollbar-thin">
+                {events.slice(0, 4).map(event => (
+                  <div key={event.id} className="text-xs p-2 bg-secondary/50 rounded-lg">
+                    <p className="font-medium text-foreground truncate">{event.event_name || event.college_name}</p>
+                    <p className="text-muted-foreground">{format(new Date(event.event_date), 'MMM d')}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </GlassCard>
+        </div>
+      </div>
 
       {/* Event Form Modal */}
       {showForm && (
         <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <GlassCard className="w-full max-w-2xl max-h-[90vh] overflow-y-auto p-6">
+          <GlassCard className="w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-foreground">
                 {editingEvent ? 'Edit Event' : 'Add New Event'}
@@ -466,179 +390,102 @@ export function CalendarView({ userData }: CalendarViewProps) {
               </button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-foreground mb-1">College/Organization Name *</label>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-1">Event Name *</label>
                 <input
                   type="text"
-                  value={formData.college_name}
-                  onChange={e => setFormData(prev => ({ ...prev, college_name: e.target.value }))}
-                  className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-primary"
-                  placeholder="Enter college or organization name"
+                  value={formData.event_name}
+                  onChange={e => setFormData({ ...formData, event_name: e.target.value })}
+                  className="w-full px-3 py-2 bg-secondary border border-border rounded-lg text-foreground focus:outline-none focus:border-primary"
+                  placeholder="Enter event name"
                 />
               </div>
-              
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">Start Date *</label>
+                  <input
+                    type="date"
+                    value={formData.event_date}
+                    onChange={e => setFormData({ ...formData, event_date: e.target.value })}
+                    className="w-full px-3 py-2 bg-secondary border border-border rounded-lg text-foreground focus:outline-none focus:border-primary"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">End Date</label>
+                  <input
+                    type="date"
+                    value={formData.end_date}
+                    onChange={e => setFormData({ ...formData, end_date: e.target.value })}
+                    className="w-full px-3 py-2 bg-secondary border border-border rounded-lg text-foreground focus:outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">Category</label>
+                  <select
+                    value={formData.category}
+                    onChange={e => setFormData({ ...formData, category: e.target.value })}
+                    className="w-full px-3 py-2 bg-secondary border border-border rounded-lg text-foreground focus:outline-none focus:border-primary"
+                  >
+                    <option value="">Select category</option>
+                    {CATEGORY_OPTIONS.map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-1">Activity</label>
+                  <input
+                    type="text"
+                    value={formData.activity}
+                    onChange={e => setFormData({ ...formData, activity: e.target.value })}
+                    className="w-full px-3 py-2 bg-secondary border border-border rounded-lg text-foreground focus:outline-none focus:border-primary"
+                    placeholder="e.g., Workshop, Competition"
+                  />
+                </div>
+              </div>
+
               <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Fest Name</label>
-                <input
-                  type="text"
-                  value={formData.fest_name || ''}
-                  onChange={e => setFormData(prev => ({ ...prev, fest_name: e.target.value }))}
-                  className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-primary"
-                  placeholder="e.g., Tech Fest 2026"
+                <label className="block text-sm font-medium text-foreground mb-1">Details</label>
+                <textarea
+                  value={formData.details}
+                  onChange={e => setFormData({ ...formData, details: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 bg-secondary border border-border rounded-lg text-foreground focus:outline-none focus:border-primary resize-none"
+                  placeholder="Event details..."
                 />
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Event Date *</label>
-                <input
-                  type="date"
-                  value={formData.event_date}
-                  onChange={e => setFormData(prev => ({ ...prev, event_date: e.target.value }))}
-                  className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-primary"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Number of Days</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={formData.no_of_days || 1}
-                  onChange={e => setFormData(prev => ({ ...prev, no_of_days: parseInt(e.target.value) || 1 }))}
-                  className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-primary"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Event Type</label>
-                <input
-                  type="text"
-                  value={formData.event_type || ''}
-                  onChange={e => setFormData(prev => ({ ...prev, event_type: e.target.value }))}
-                  className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-primary"
-                  placeholder="e.g., Tech Fest, Gaming Tournament"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Requirement</label>
-                <input
-                  type="text"
-                  value={formData.requirement || ''}
-                  onChange={e => setFormData(prev => ({ ...prev, requirement: e.target.value }))}
-                  className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-primary"
-                  placeholder="e.g., Experience Zone, Tournament"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Internet Access</label>
-                <input
-                  type="text"
-                  value={formData.internet_access || ''}
-                  onChange={e => setFormData(prev => ({ ...prev, internet_access: e.target.value }))}
-                  className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-primary"
-                  placeholder="e.g., BSNL, Jio"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Contact Name</label>
-                <input
-                  type="text"
-                  value={formData.contact_name || ''}
-                  onChange={e => setFormData(prev => ({ ...prev, contact_name: e.target.value }))}
-                  className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-primary"
-                  placeholder="Contact person name"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Phone Number</label>
-                <input
-                  type="tel"
-                  value={formData.phone_number || ''}
-                  onChange={e => setFormData(prev => ({ ...prev, phone_number: e.target.value }))}
-                  className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-primary"
-                  placeholder="Contact phone number"
-                />
-              </div>
-              
+
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1">Status</label>
                 <select
                   value={formData.status}
-                  onChange={e => setFormData(prev => ({ ...prev, status: e.target.value }))}
-                  className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-primary"
+                  onChange={e => setFormData({ ...formData, status: e.target.value })}
+                  className="w-full px-3 py-2 bg-secondary border border-border rounded-lg text-foreground focus:outline-none focus:border-primary"
                 >
                   {STATUS_OPTIONS.map(status => (
                     <option key={status} value={status}>{status}</option>
                   ))}
                 </select>
               </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">Cost (INR)</label>
-                <input
-                  type="number"
-                  value={formData.cost || ''}
-                  onChange={e => setFormData(prev => ({ ...prev, cost: e.target.value ? parseFloat(e.target.value) : null }))}
-                  className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-primary"
-                  placeholder="0.00"
-                />
+
+              <div className="flex gap-3 pt-4">
+                <ActionButton onClick={handleSave} disabled={isSaving} className="flex-1">
+                  {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                  {editingEvent ? 'Update Event' : 'Create Event'}
+                </ActionButton>
+                <ActionButton 
+                  variant="secondary" 
+                  onClick={() => { setShowForm(false); setEditingEvent(null); }}
+                  className="flex-1"
+                >
+                  Cancel
+                </ActionButton>
               </div>
-              
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-foreground mb-1">Update 1</label>
-                <textarea
-                  value={formData.update_1 || ''}
-                  onChange={e => setFormData(prev => ({ ...prev, update_1: e.target.value }))}
-                  className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-primary resize-none"
-                  rows={2}
-                  placeholder="Latest update..."
-                />
-              </div>
-              
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-foreground mb-1">Update 2</label>
-                <textarea
-                  value={formData.update_2 || ''}
-                  onChange={e => setFormData(prev => ({ ...prev, update_2: e.target.value }))}
-                  className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-primary resize-none"
-                  rows={2}
-                  placeholder="Additional update..."
-                />
-              </div>
-              
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-foreground mb-1">Update 3</label>
-                <textarea
-                  value={formData.update_3 || ''}
-                  onChange={e => setFormData(prev => ({ ...prev, update_3: e.target.value }))}
-                  className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-foreground focus:outline-none focus:border-primary resize-none"
-                  rows={2}
-                  placeholder="Additional update..."
-                />
-              </div>
-            </div>
-            
-            <div className="flex gap-3 mt-6">
-              <ActionButton
-                variant="secondary"
-                onClick={() => { setShowForm(false); setEditingEvent(null); }}
-                className="flex-1"
-              >
-                Cancel
-              </ActionButton>
-              <ActionButton
-                onClick={handleSave}
-                disabled={isSaving}
-                className="flex-1"
-              >
-                {isSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                {editingEvent ? 'Update Event' : 'Create Event'}
-              </ActionButton>
             </div>
           </GlassCard>
         </div>

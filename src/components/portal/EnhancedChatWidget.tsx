@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
-import { MessageCircle, X, Send, Maximize2, Minimize2, ArrowLeft, Smile, Paperclip, Image as ImageIcon, MoreHorizontal, Search, Hash, Users } from "lucide-react";
+import { MessageCircle, X, Send, Maximize2, Minimize2, ArrowLeft, Smile, Paperclip, Image as ImageIcon, MoreHorizontal, Search, Hash, Users, Bold, Italic, Link2, List, Code } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { UserAvatar } from "./UserAvatar";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,9 +26,10 @@ interface Channel {
 
 const EMOJI_CATEGORIES = {
   recent: ['👍', '❤️', '😊', '😂', '🎉', '🔥', '👏', '✨'],
-  smileys: ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '😊', '😇', '🥰', '😍', '🤩', '😘'],
-  gestures: ['👋', '🤚', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👍', '👎', '👊'],
-  objects: ['💼', '📁', '📂', '📅', '📆', '📌', '📎', '🔗', '✂️', '📝', '✏️', '🔍', '🔎', '💡', '💰'],
+  smileys: ['😀', '😃', '😄', '😁', '😆', '😅', '🤣', '😂', '🙂', '😊', '😇', '🥰', '😍', '🤩', '😘', '😋', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔'],
+  gestures: ['👋', '🤚', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👍', '👎', '👊', '✊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏'],
+  objects: ['💼', '📁', '📂', '📅', '📆', '📌', '📎', '🔗', '✂️', '📝', '✏️', '🔍', '🔎', '💡', '💰', '💳', '📱', '💻', '🖥️', '⌨️', '🖱️', '🖨️', '📷', '🎥'],
+  symbols: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '✅', '❌', '⭐', '🌟', '💫', '✨'],
 };
 
 const GENERAL_CHANNEL_ID = '00000000-0000-0000-0000-000000000001';
@@ -44,12 +45,14 @@ export function EnhancedChatWidget() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [activeEmojiCategory, setActiveEmojiCategory] = useState<keyof typeof EMOJI_CATEGORIES>('smileys');
   const [showConversationList, setShowConversationList] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [profiles, setProfiles] = useState<Record<string, { full_name: string; avatar_url: string | null }>>({});
+  const [showFormatting, setShowFormatting] = useState(false);
   
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch channels
@@ -202,6 +205,7 @@ export function EnhancedChatWidget() {
 
     setNewMessage("");
     setShowEmojiPicker(false);
+    setShowFormatting(false);
   };
 
   const handleEmojiClick = (emoji: string) => {
@@ -251,6 +255,49 @@ export function EnhancedChatWidget() {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) return 'Today';
+    if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  };
+
+  const applyFormatting = (format: string) => {
+    const textarea = inputRef.current;
+    if (!textarea) return;
+    
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = newMessage.substring(start, end);
+    
+    let formattedText = '';
+    switch (format) {
+      case 'bold':
+        formattedText = `**${selectedText}**`;
+        break;
+      case 'italic':
+        formattedText = `_${selectedText}_`;
+        break;
+      case 'code':
+        formattedText = `\`${selectedText}\``;
+        break;
+      case 'link':
+        formattedText = `[${selectedText}](url)`;
+        break;
+      case 'list':
+        formattedText = `\n• ${selectedText}`;
+        break;
+      default:
+        formattedText = selectedText;
+    }
+    
+    setNewMessage(newMessage.substring(0, start) + formattedText + newMessage.substring(end));
+  };
+
   const activeChannelData = channels.find(c => c.id === activeChannel);
   
   const filteredChannels = useMemo(() => {
@@ -259,6 +306,24 @@ export function EnhancedChatWidget() {
       c.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
   }, [channels, searchQuery]);
+
+  // Group messages by date
+  const groupedMessages = useMemo(() => {
+    const groups: { date: string; messages: ChatMessage[] }[] = [];
+    let currentDate = '';
+    
+    messages.forEach(msg => {
+      const msgDate = formatDate(msg.created_at);
+      if (msgDate !== currentDate) {
+        currentDate = msgDate;
+        groups.push({ date: msgDate, messages: [msg] });
+      } else {
+        groups[groups.length - 1].messages.push(msg);
+      }
+    });
+    
+    return groups;
+  }, [messages]);
 
   if (!user) return null;
 
@@ -270,14 +335,14 @@ export function EnhancedChatWidget() {
       {/* Sidebar / Conversation List */}
       <div className={cn(
         "border-r border-border bg-card flex flex-col",
-        isFullscreen ? "w-72" : "w-full",
+        isFullscreen ? "w-80" : "w-full",
         !showConversationList && !isFullscreen && "hidden"
       )}>
         {/* Sidebar Header */}
         <div className="p-4 border-b border-border">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="font-bold text-foreground">Messages</h3>
-            <button className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground">
+            <h3 className="font-bold text-lg text-foreground">Messages</h3>
+            <button className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors">
               <MoreHorizontal size={18} />
             </button>
           </div>
@@ -288,15 +353,15 @@ export function EnhancedChatWidget() {
               placeholder="Search conversations..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-secondary border border-border rounded-lg pl-9 pr-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary"
+              className="w-full bg-secondary border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
             />
           </div>
         </div>
         
         {/* Channel List */}
         <div className="flex-1 overflow-y-auto scrollbar-thin">
-          <div className="p-2">
-            <p className="px-2 py-1 text-xs text-muted-foreground font-semibold uppercase">Channels</p>
+          <div className="p-3">
+            <p className="px-3 py-2 text-xs text-muted-foreground font-semibold uppercase tracking-wider">Channels</p>
             {filteredChannels.filter(c => !c.is_direct_message).map(channel => (
               <button
                 key={channel.id}
@@ -305,20 +370,25 @@ export function EnhancedChatWidget() {
                   if (!isFullscreen) setShowConversationList(false);
                 }}
                 className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
+                  "w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all",
                   activeChannel === channel.id 
-                    ? "bg-primary/10 text-primary" 
+                    ? "bg-primary/10 text-primary border border-primary/20" 
                     : "hover:bg-secondary text-foreground"
                 )}
               >
-                <Hash size={18} className="text-muted-foreground" />
-                <span className="flex-1 text-left text-sm font-medium truncate">{channel.name}</span>
+                <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
+                  <Hash size={18} className="text-accent" />
+                </div>
+                <div className="flex-1 text-left">
+                  <span className="text-sm font-semibold block">{channel.name}</span>
+                  <span className="text-xs text-muted-foreground">Team channel</span>
+                </div>
               </button>
             ))}
           </div>
           
-          <div className="p-2">
-            <p className="px-2 py-1 text-xs text-muted-foreground font-semibold uppercase">Direct Messages</p>
+          <div className="p-3">
+            <p className="px-3 py-2 text-xs text-muted-foreground font-semibold uppercase tracking-wider">Direct Messages</p>
             {filteredChannels.filter(c => c.is_direct_message).map(channel => (
               <button
                 key={channel.id}
@@ -327,18 +397,21 @@ export function EnhancedChatWidget() {
                   if (!isFullscreen) setShowConversationList(false);
                 }}
                 className={cn(
-                  "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
+                  "w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all",
                   activeChannel === channel.id 
-                    ? "bg-primary/10 text-primary" 
+                    ? "bg-primary/10 text-primary border border-primary/20" 
                     : "hover:bg-secondary text-foreground"
                 )}
               >
-                <Users size={18} className="text-muted-foreground" />
-                <span className="flex-1 text-left text-sm font-medium truncate">{channel.name}</span>
+                <UserAvatar name={channel.name} size="md" />
+                <div className="flex-1 text-left">
+                  <span className="text-sm font-semibold block">{channel.name}</span>
+                  <span className="text-xs text-muted-foreground">Online</span>
+                </div>
               </button>
             ))}
             {filteredChannels.filter(c => c.is_direct_message).length === 0 && (
-              <p className="px-3 py-2 text-xs text-muted-foreground">No direct messages yet</p>
+              <p className="px-3 py-4 text-xs text-muted-foreground text-center">No direct messages yet</p>
             )}
           </div>
         </div>
@@ -355,121 +428,149 @@ export function EnhancedChatWidget() {
             {!isFullscreen && (
               <button 
                 onClick={() => setShowConversationList(true)}
-                className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground"
+                className="p-2 rounded-lg hover:bg-secondary text-muted-foreground transition-colors"
               >
                 <ArrowLeft size={18} />
               </button>
             )}
+            <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
+              <Hash size={18} className="text-accent" />
+            </div>
             <div>
-              <h4 className="font-bold text-foreground flex items-center gap-2">
-                <Hash size={16} className="text-muted-foreground" />
+              <h4 className="font-bold text-foreground">
                 {activeChannelData?.name || 'General'}
               </h4>
               <span className="text-xs text-muted-foreground">
-                {messages.length} messages
+                {messages.length} messages • Team channel
               </span>
             </div>
           </div>
           
-          {!isFullscreen && (
-            <button
-              onClick={() => setIsFullscreen(true)}
-              className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground"
-            >
-              <Maximize2 size={18} />
+          <div className="flex items-center gap-2">
+            <button className="p-2 rounded-lg hover:bg-secondary text-muted-foreground transition-colors">
+              <Search size={18} />
             </button>
-          )}
+            {!isFullscreen && (
+              <button
+                onClick={() => setIsFullscreen(true)}
+                className="p-2 rounded-lg hover:bg-secondary text-muted-foreground transition-colors"
+              >
+                <Maximize2 size={18} />
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto scrollbar-thin p-4 space-y-6">
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-              <MessageCircle size={48} className="mb-4 opacity-50" />
-              <p className="text-sm">No messages yet</p>
-              <p className="text-xs">Be the first to say something!</p>
+              <div className="w-20 h-20 rounded-2xl bg-accent/10 flex items-center justify-center mb-4">
+                <MessageCircle size={40} className="text-accent" />
+              </div>
+              <p className="text-lg font-semibold text-foreground mb-1">No messages yet</p>
+              <p className="text-sm">Be the first to start the conversation!</p>
             </div>
           )}
           
-          {messages.map((msg, idx) => {
-            const isOwnMessage = msg.sender_id === user?.id;
-            const senderProfile = profiles[msg.sender_id];
-            const showAvatar = idx === 0 || messages[idx - 1].sender_id !== msg.sender_id;
-            
-            return (
-              <div key={msg.id} className={cn("flex gap-3", isOwnMessage && "flex-row-reverse")}>
-              {showAvatar ? (
-                  <UserAvatar 
-                    name={senderProfile?.full_name || msg.sender_name} 
-                    size="md"
-                    src={senderProfile?.avatar_url || undefined}
-                  />
-                ) : (
-                  <div className="w-8" />
-                )}
-                
-                <div className={cn("flex flex-col max-w-[75%]", isOwnMessage && "items-end")}>
-                  {showAvatar && (
-                    <div className={cn("flex items-center gap-2 mb-1", isOwnMessage && "flex-row-reverse")}>
-                      <span className="text-sm font-medium text-foreground">
-                        {isOwnMessage ? 'You' : (senderProfile?.full_name || msg.sender_name)}
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {formatTime(msg.created_at)}
-                      </span>
-                    </div>
-                  )}
-                  
-                  <div className={cn(
-                    "rounded-2xl px-4 py-2.5 text-sm",
-                    isOwnMessage 
-                      ? "bg-primary text-primary-foreground rounded-tr-md" 
-                      : "bg-secondary text-foreground rounded-tl-md"
-                  )}>
-                    {msg.content}
-                  </div>
-                  
-                  {/* Reactions */}
-                  {Object.keys(msg.reactions).length > 0 && (
-                    <div className="flex gap-1 mt-1">
-                      {Object.entries(msg.reactions).map(([emoji, users]) => (
-                        <span 
-                          key={emoji}
-                          className="px-2 py-0.5 bg-secondary rounded-full text-xs flex items-center gap-1"
-                        >
-                          {emoji} {users.length}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
+          {groupedMessages.map((group, groupIdx) => (
+            <div key={groupIdx}>
+              {/* Date separator */}
+              <div className="flex items-center gap-4 my-6">
+                <div className="flex-1 h-px bg-border" />
+                <span className="text-xs font-medium text-muted-foreground px-3 py-1 bg-secondary rounded-full">
+                  {group.date}
+                </span>
+                <div className="flex-1 h-px bg-border" />
               </div>
-            );
-          })}
+              
+              {group.messages.map((msg, idx) => {
+                const isOwnMessage = msg.sender_id === user?.id;
+                const senderProfile = profiles[msg.sender_id];
+                const showAvatar = idx === 0 || group.messages[idx - 1].sender_id !== msg.sender_id;
+                
+                return (
+                  <div key={msg.id} className={cn("flex gap-3 mb-2 group", isOwnMessage && "flex-row-reverse")}>
+                    {showAvatar ? (
+                      <UserAvatar 
+                        name={senderProfile?.full_name || msg.sender_name} 
+                        size="md"
+                        src={senderProfile?.avatar_url || undefined}
+                      />
+                    ) : (
+                      <div className="w-8" />
+                    )}
+                    
+                    <div className={cn("flex flex-col max-w-[70%]", isOwnMessage && "items-end")}>
+                      {showAvatar && (
+                        <div className={cn("flex items-center gap-2 mb-1", isOwnMessage && "flex-row-reverse")}>
+                          <span className="text-sm font-semibold text-foreground">
+                            {isOwnMessage ? 'You' : (senderProfile?.full_name || msg.sender_name)}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatTime(msg.created_at)}
+                          </span>
+                        </div>
+                      )}
+                      
+                      <div className={cn(
+                        "rounded-2xl px-4 py-3 text-sm leading-relaxed",
+                        isOwnMessage 
+                          ? "bg-primary text-primary-foreground rounded-tr-md" 
+                          : "bg-secondary text-foreground rounded-tl-md"
+                      )}>
+                        {msg.content}
+                      </div>
+                      
+                      {/* Reactions */}
+                      {Object.keys(msg.reactions).length > 0 && (
+                        <div className="flex gap-1 mt-1">
+                          {Object.entries(msg.reactions).map(([emoji, users]) => (
+                            <span 
+                              key={emoji}
+                              className="px-2 py-0.5 bg-secondary rounded-full text-xs flex items-center gap-1 hover:bg-secondary/80 cursor-pointer transition-colors"
+                            >
+                              {emoji} {users.length}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
           <div ref={chatEndRef} />
         </div>
 
         {/* Input Area */}
-        <div className="p-3 border-t border-border bg-card shrink-0">
+        <div className="p-4 border-t border-border bg-card shrink-0">
           {/* Emoji Picker */}
           {showEmojiPicker && (
-            <div className="mb-3 p-3 bg-secondary rounded-xl border border-border animate-scale-in">
-              <div className="flex gap-1 mb-2">
+            <div className="mb-3 p-4 bg-secondary rounded-2xl border border-border animate-scale-in">
+              <div className="flex gap-1 mb-3 border-b border-border pb-3">
                 {Object.keys(EMOJI_CATEGORIES).map(category => (
                   <button
                     key={category}
-                    className="px-2 py-1 text-xs rounded-md hover:bg-primary/10 text-muted-foreground hover:text-foreground capitalize"
+                    onClick={() => setActiveEmojiCategory(category as keyof typeof EMOJI_CATEGORIES)}
+                    className={cn(
+                      "px-3 py-1.5 text-xs rounded-lg font-medium capitalize transition-colors",
+                      activeEmojiCategory === category 
+                        ? "bg-primary text-primary-foreground" 
+                        : "hover:bg-primary/10 text-muted-foreground hover:text-foreground"
+                    )}
                   >
                     {category}
                   </button>
                 ))}
               </div>
-              <div className="grid grid-cols-8 gap-1">
-                {EMOJI_CATEGORIES.smileys.map(emoji => (
+              <div className="grid grid-cols-8 gap-1 max-h-40 overflow-y-auto scrollbar-thin">
+                {EMOJI_CATEGORIES[activeEmojiCategory].map(emoji => (
                   <button
                     key={emoji}
                     onClick={() => handleEmojiClick(emoji)}
-                    className="p-1.5 text-lg hover:bg-primary/10 rounded-lg transition-colors"
+                    className="p-2 text-xl hover:bg-primary/10 rounded-lg transition-colors"
                   >
                     {emoji}
                   </button>
@@ -477,48 +578,110 @@ export function EnhancedChatWidget() {
               </div>
             </div>
           )}
-          
-          <form onSubmit={handleSend} className="flex items-center gap-2">
-            <div className="flex gap-1">
+
+          {/* Formatting Toolbar */}
+          {showFormatting && (
+            <div className="mb-3 flex items-center gap-1 p-2 bg-secondary rounded-xl border border-border animate-scale-in">
               <button 
-                type="button"
-                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                className={cn(
-                  "p-2 rounded-lg transition-colors",
-                  showEmojiPicker ? "bg-primary/10 text-primary" : "text-muted-foreground hover:text-foreground hover:bg-secondary"
-                )}
+                onClick={() => applyFormatting('bold')}
+                className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-foreground transition-colors"
+                title="Bold"
               >
-                <Smile size={20} />
+                <Bold size={16} />
               </button>
-              
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                className="hidden"
-                accept="image/*,.pdf,.doc,.docx"
-              />
               <button 
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                onClick={() => applyFormatting('italic')}
+                className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-foreground transition-colors"
+                title="Italic"
               >
-                <Paperclip size={20} />
+                <Italic size={16} />
+              </button>
+              <button 
+                onClick={() => applyFormatting('code')}
+                className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-foreground transition-colors"
+                title="Code"
+              >
+                <Code size={16} />
+              </button>
+              <button 
+                onClick={() => applyFormatting('link')}
+                className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-foreground transition-colors"
+                title="Link"
+              >
+                <Link2 size={16} />
+              </button>
+              <button 
+                onClick={() => applyFormatting('list')}
+                className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-foreground transition-colors"
+                title="List"
+              >
+                <List size={16} />
               </button>
             </div>
+          )}
+          
+          <form onSubmit={handleSend} className="flex items-end gap-3">
+            <div className="flex-1 bg-secondary border border-border rounded-2xl p-2 focus-within:border-primary transition-colors">
+              <textarea
+                ref={inputRef}
+                value={newMessage}
+                onChange={e => setNewMessage(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend(e);
+                  }
+                }}
+                placeholder="Type a message..."
+                rows={1}
+                className="w-full bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none resize-none text-sm px-2 py-1"
+                style={{ minHeight: '24px', maxHeight: '120px' }}
+              />
+              
+              <div className="flex items-center gap-1 mt-2 pt-2 border-t border-border/50">
+                <button
+                  type="button"
+                  onClick={() => setShowFormatting(!showFormatting)}
+                  className={cn(
+                    "p-2 rounded-lg transition-colors",
+                    showFormatting ? "bg-primary/10 text-primary" : "hover:bg-primary/10 text-muted-foreground hover:text-foreground"
+                  )}
+                  title="Formatting"
+                >
+                  <Bold size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowEmojiPicker(!showEmojiPicker); setShowFormatting(false); }}
+                  className={cn(
+                    "p-2 rounded-lg transition-colors",
+                    showEmojiPicker ? "bg-primary/10 text-primary" : "hover:bg-primary/10 text-muted-foreground hover:text-foreground"
+                  )}
+                  title="Emoji"
+                >
+                  <Smile size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-foreground transition-colors"
+                  title="Attach file"
+                >
+                  <Paperclip size={16} />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+              </div>
+            </div>
             
-            <input 
-              ref={inputRef}
-              className="flex-1 bg-secondary border border-border rounded-full px-4 py-2.5 text-sm focus:outline-none focus:border-primary text-foreground placeholder:text-muted-foreground"
-              placeholder={`Message #${activeChannelData?.name || 'general'}...`}
-              value={newMessage}
-              onChange={e => setNewMessage(e.target.value)}
-            />
-            
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={!newMessage.trim()}
-              className="bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed text-primary-foreground p-2.5 rounded-full transition-colors glow-primary"
+              className="p-4 rounded-2xl bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-105 active:scale-95"
             >
               <Send size={18} />
             </button>
@@ -528,55 +691,58 @@ export function EnhancedChatWidget() {
     </div>
   );
 
-  // Fullscreen Mode
+  // Fullscreen mode
   if (isFullscreen) {
     return (
-      <div className="fixed inset-0 z-50 bg-background animate-fade-in">
-        <div className="h-full flex flex-col">
-          {/* Fullscreen Header */}
-          <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-card">
-            <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-              <MessageCircle className="text-primary" />
-              Team Chat
-            </h2>
-            <button
-              onClick={() => setIsFullscreen(false)}
-              className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Minimize2 size={20} />
-            </button>
+      <div className="fixed inset-0 bg-background z-50 flex flex-col animate-fade-in">
+        {/* Fullscreen Header */}
+        <div className="px-6 py-4 border-b border-border flex items-center justify-between bg-card">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+              <MessageCircle size={20} className="text-primary" />
+            </div>
+            <div>
+              <h2 className="font-bold text-lg text-foreground">Team Chat</h2>
+              <p className="text-xs text-muted-foreground">Real-time team collaboration</p>
+            </div>
           </div>
-          
-          <div className="flex-1 overflow-hidden">
-            {chatContent}
-          </div>
+          <button
+            onClick={() => setIsFullscreen(false)}
+            className="p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <Minimize2 size={20} />
+          </button>
+        </div>
+        
+        <div className="flex-1 overflow-hidden">
+          {chatContent}
         </div>
       </div>
     );
   }
 
+  // Floating chat widget
   return (
     <>
-      {/* FAB */}
-      <button 
+      {/* Chat Toggle Button */}
+      <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-all duration-300 z-50",
+          "fixed bottom-6 right-6 z-40 p-4 rounded-2xl shadow-xl transition-all duration-300 hover:scale-105 active:scale-95",
           isOpen 
-            ? "bg-secondary text-foreground rotate-0" 
-            : "bg-primary text-primary-foreground animate-pulse-glow hover:scale-105"
+            ? "bg-secondary text-foreground" 
+            : "bg-primary text-primary-foreground animate-pulse-glow"
         )}
       >
         {isOpen ? <X size={24} /> : <MessageCircle size={24} />}
       </button>
 
-      {/* Chat Panel */}
-      <div className={cn(
-        "fixed bottom-24 right-6 w-[420px] max-w-[calc(100vw-3rem)] h-[600px] max-h-[75vh] glass-strong rounded-2xl shadow-2xl border border-border overflow-hidden transition-all duration-300 z-40 origin-bottom-right",
-        isOpen ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none translate-y-4"
-      )}>
-        {chatContent}
-      </div>
+      {/* Chat Window */}
+      {isOpen && (
+        <div className="fixed bottom-24 right-6 z-40 w-[400px] h-[600px] bg-card border border-border rounded-2xl shadow-2xl overflow-hidden animate-scale-in">
+          {chatContent}
+        </div>
+      )}
     </>
   );
 }
