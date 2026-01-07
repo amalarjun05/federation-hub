@@ -113,12 +113,17 @@ export type Database = {
       }
       events: {
         Row: {
+          activity: string | null
+          category: string | null
           college_name: string
           contact_name: string | null
           cost: number | null
           created_at: string
           created_by: string | null
+          details: string | null
+          end_date: string | null
           event_date: string
+          event_name: string | null
           event_type: string | null
           fest_name: string | null
           id: string
@@ -133,12 +138,17 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          activity?: string | null
+          category?: string | null
           college_name: string
           contact_name?: string | null
           cost?: number | null
           created_at?: string
           created_by?: string | null
+          details?: string | null
+          end_date?: string | null
           event_date: string
+          event_name?: string | null
           event_type?: string | null
           fest_name?: string | null
           id?: string
@@ -153,12 +163,17 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          activity?: string | null
+          category?: string | null
           college_name?: string
           contact_name?: string | null
           cost?: number | null
           created_at?: string
           created_by?: string | null
+          details?: string | null
+          end_date?: string | null
           event_date?: string
+          event_name?: string | null
           event_type?: string | null
           fest_name?: string | null
           id?: string
@@ -182,6 +197,8 @@ export type Database = {
           district: string | null
           full_name: string | null
           id: string
+          is_approved: boolean | null
+          phone_number: string | null
           updated_at: string
         }
         Insert: {
@@ -191,6 +208,8 @@ export type Database = {
           district?: string | null
           full_name?: string | null
           id: string
+          is_approved?: boolean | null
+          phone_number?: string | null
           updated_at?: string
         }
         Update: {
@@ -200,6 +219,8 @@ export type Database = {
           district?: string | null
           full_name?: string | null
           id?: string
+          is_approved?: boolean | null
+          phone_number?: string | null
           updated_at?: string
         }
         Relationships: []
