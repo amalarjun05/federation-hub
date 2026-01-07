@@ -111,6 +111,69 @@ export type Database = {
           },
         ]
       }
+      events: {
+        Row: {
+          college_name: string
+          contact_name: string | null
+          cost: number | null
+          created_at: string
+          created_by: string | null
+          event_date: string
+          event_type: string | null
+          fest_name: string | null
+          id: string
+          internet_access: string | null
+          no_of_days: number | null
+          phone_number: string | null
+          requirement: string | null
+          status: string
+          update_1: string | null
+          update_2: string | null
+          update_3: string | null
+          updated_at: string
+        }
+        Insert: {
+          college_name: string
+          contact_name?: string | null
+          cost?: number | null
+          created_at?: string
+          created_by?: string | null
+          event_date: string
+          event_type?: string | null
+          fest_name?: string | null
+          id?: string
+          internet_access?: string | null
+          no_of_days?: number | null
+          phone_number?: string | null
+          requirement?: string | null
+          status?: string
+          update_1?: string | null
+          update_2?: string | null
+          update_3?: string | null
+          updated_at?: string
+        }
+        Update: {
+          college_name?: string
+          contact_name?: string | null
+          cost?: number | null
+          created_at?: string
+          created_by?: string | null
+          event_date?: string
+          event_type?: string | null
+          fest_name?: string | null
+          id?: string
+          internet_access?: string | null
+          no_of_days?: number | null
+          phone_number?: string | null
+          requirement?: string | null
+          status?: string
+          update_1?: string | null
+          update_2?: string | null
+          update_3?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null

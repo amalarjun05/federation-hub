@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
-export type AppRole = 'super_admin' | 'state_member' | 'employee';
+export type AppRole = 'super_admin' | 'state_member' | 'district_member' | 'employee';
 
 interface Profile {
   id: string;
@@ -10,6 +10,8 @@ interface Profile {
   avatar_url: string | null;
   designation: string | null;
   district: string | null;
+  phone_number: string | null;
+  is_approved: boolean;
 }
 
 interface AuthContextType {
@@ -19,11 +21,11 @@ interface AuthContextType {
   role: AppRole | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
-  signInWithGoogle: () => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, fullName: string, phoneNumber: string, requestedRole: AppRole) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   isAdmin: boolean;
   isSuperAdmin: boolean;
+  isApproved: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -44,7 +46,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .maybeSingle();
       
       if (profileData) {
-        setProfile(profileData);
+        setProfile({
+          id: profileData.id,
+          full_name: profileData.full_name,
+          avatar_url: profileData.avatar_url,
+          designation: profileData.designation,
+          district: profileData.district,
+          phone_number: (profileData as any).phone_number ?? null,
+          is_approved: (profileData as any).is_approved ?? false,
+        });
       }
 
       const { data: roleData } = await supabase
@@ -102,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error as Error | null };
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (email: string, password: string, fullName: string, phoneNumber: string, requestedRole: AppRole) => {
     const redirectUrl = `${window.location.origin}/`;
     
     const { error } = await supabase.auth.signUp({
@@ -112,17 +122,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         emailRedirectTo: redirectUrl,
         data: {
           full_name: fullName,
+          phone_number: phoneNumber,
+          requested_role: requestedRole,
         }
-      }
-    });
-    return { error: error as Error | null };
-  };
-
-  const signInWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/`,
       }
     });
     return { error: error as Error | null };
@@ -136,6 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const isAdmin = role === 'super_admin' || role === 'state_member';
   const isSuperAdmin = role === 'super_admin';
+  const isApproved = profile?.is_approved ?? false;
 
   return (
     <AuthContext.Provider value={{
@@ -146,10 +149,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       signIn,
       signUp,
-      signInWithGoogle,
       signOut,
       isAdmin,
       isSuperAdmin,
+      isApproved,
     }}>
       {children}
     </AuthContext.Provider>

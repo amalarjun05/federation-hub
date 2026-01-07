@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 import { 
   Bell, Menu, X, Shield, Search, Settings,
-  LayoutDashboard, Receipt, Vote, BookOpen, CheckSquare, 
+  LayoutDashboard, Receipt, BookOpen, CheckSquare, 
   Video, Users, CalendarDays, LogOut, Loader2
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
@@ -27,7 +27,7 @@ const NAV_ITEMS = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "team", label: "Team", icon: Users },
   { id: "finance", label: "Finance", icon: Receipt },
-  { id: "governance", label: "Governance", icon: Vote },
+  { id: "calendar", label: "Calendar", icon: CalendarDays },
   { id: "library", label: "Library", icon: BookOpen },
   { id: "tasks", label: "Tasks", icon: CheckSquare },
   { id: "meetings", label: "Meetings", icon: Video },
