@@ -189,6 +189,129 @@ export type Database = {
         }
         Relationships: []
       }
+      invoice_profiles: {
+        Row: {
+          created_at: string
+          id: string
+          profile_data: Json
+          profile_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          profile_data?: Json
+          profile_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          profile_data?: Json
+          profile_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      invoices: {
+        Row: {
+          bank_account_no: string | null
+          bank_branch: string | null
+          bank_ifsc: string | null
+          bank_name: string | null
+          client_address: string | null
+          client_gst: string | null
+          client_name: string | null
+          client_pan: string | null
+          created_at: string
+          design_color: string | null
+          design_font: string | null
+          doc_date: string
+          doc_id: string
+          doc_type: string
+          due_date: string | null
+          from_address: string | null
+          from_gst: string | null
+          from_name: string | null
+          from_pan: string | null
+          id: string
+          items: Json
+          logo_size: number | null
+          logo_src: string | null
+          notes: string | null
+          sig_size: number | null
+          sig_src: string | null
+          tax_rate: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bank_account_no?: string | null
+          bank_branch?: string | null
+          bank_ifsc?: string | null
+          bank_name?: string | null
+          client_address?: string | null
+          client_gst?: string | null
+          client_name?: string | null
+          client_pan?: string | null
+          created_at?: string
+          design_color?: string | null
+          design_font?: string | null
+          doc_date: string
+          doc_id: string
+          doc_type?: string
+          due_date?: string | null
+          from_address?: string | null
+          from_gst?: string | null
+          from_name?: string | null
+          from_pan?: string | null
+          id?: string
+          items?: Json
+          logo_size?: number | null
+          logo_src?: string | null
+          notes?: string | null
+          sig_size?: number | null
+          sig_src?: string | null
+          tax_rate?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bank_account_no?: string | null
+          bank_branch?: string | null
+          bank_ifsc?: string | null
+          bank_name?: string | null
+          client_address?: string | null
+          client_gst?: string | null
+          client_name?: string | null
+          client_pan?: string | null
+          created_at?: string
+          design_color?: string | null
+          design_font?: string | null
+          doc_date?: string
+          doc_id?: string
+          doc_type?: string
+          due_date?: string | null
+          from_address?: string | null
+          from_gst?: string | null
+          from_name?: string | null
+          from_pan?: string | null
+          id?: string
+          items?: Json
+          logo_size?: number | null
+          logo_src?: string | null
+          notes?: string | null
+          sig_size?: number | null
+          sig_src?: string | null
+          tax_rate?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
