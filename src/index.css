@@ -191,6 +191,34 @@
       inset 0 1px 1px 0 hsl(220 20% 95% / 0.1);
   }
 
+  /* Subtle hover glow for interactive elements */
+  .glow-hover {
+    transition: all 0.3s ease;
+  }
+
+  .glow-hover:hover {
+    box-shadow: 0 0 25px hsl(160 84% 45% / 0.2), 0 0 50px hsl(160 84% 45% / 0.1);
+  }
+
+  .glow-hover-accent:hover {
+    box-shadow: 0 0 25px hsl(185 80% 50% / 0.2), 0 0 50px hsl(185 80% 50% / 0.1);
+  }
+
+  /* Button glow effects */
+  .btn-glow {
+    @apply transition-all duration-300;
+  }
+
+  .btn-glow:hover {
+    box-shadow: 0 0 30px hsl(160 84% 45% / 0.3), 0 5px 20px -5px hsl(160 84% 45% / 0.4);
+    transform: translateY(-1px);
+  }
+
+  .btn-glow:active {
+    transform: translateY(0);
+    box-shadow: 0 0 15px hsl(160 84% 45% / 0.2);
+  }
+
   .nav-item {
     @apply relative px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200;
   }
@@ -207,6 +235,7 @@
   .nav-item-inactive:hover {
     background: hsl(230 25% 12% / 0.6);
     backdrop-filter: blur(12px);
+    box-shadow: 0 0 20px hsl(160 84% 45% / 0.1);
   }
 
   .status-online {

@@ -19,19 +19,19 @@ export function ActionButton({
   ...props 
 }: ActionButtonProps) {
   const variants = {
-    primary: "bg-primary text-primary-foreground hover:bg-primary/90 glow-primary",
-    secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border",
-    ghost: "text-muted-foreground hover:text-foreground hover:bg-secondary",
-    destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-    outline: "border border-border bg-transparent text-foreground hover:bg-secondary",
-    success: "bg-success text-success-foreground hover:bg-success/90",
+    primary: "bg-primary text-primary-foreground hover:bg-primary/90 btn-glow",
+    secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border glow-hover",
+    ghost: "text-muted-foreground hover:text-foreground hover:bg-secondary glow-hover",
+    destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 hover:shadow-[0_0_25px_hsl(0_75%_55%/0.3)]",
+    outline: "border border-border bg-transparent text-foreground hover:bg-secondary glow-hover",
+    success: "bg-success text-success-foreground hover:bg-success/90 hover:shadow-[0_0_25px_hsl(160_84%_45%/0.3)]",
   };
 
   const sizes = {
-    sm: "text-xs px-3 py-1.5 rounded-md",
-    md: "text-sm px-4 py-2 rounded-lg",
-    lg: "text-base px-6 py-3 rounded-lg",
-    icon: "p-2 rounded-lg",
+    sm: "text-xs px-3 py-1.5 rounded-lg",
+    md: "text-sm px-4 py-2 rounded-xl",
+    lg: "text-base px-6 py-3 rounded-xl",
+    icon: "p-2.5 rounded-xl",
   };
 
   return (
