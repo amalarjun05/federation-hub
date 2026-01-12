@@ -4,7 +4,7 @@ import { ReactNode, CSSProperties } from "react";
 interface GlassCardProps {
   children: ReactNode;
   className?: string;
-  variant?: 'default' | 'glass' | 'gradient' | 'bordered';
+  variant?: 'default' | 'glass' | 'gradient' | 'bordered' | 'subtle' | 'dark';
   hover?: boolean;
   onClick?: () => void;
   style?: CSSProperties;
@@ -19,16 +19,18 @@ export function GlassCard({
   style,
 }: GlassCardProps) {
   const variants = {
-    default: "bg-card border border-border",
+    default: "glass",
     glass: "glass",
-    gradient: "gradient-border bg-card",
-    bordered: "bg-card/50 border-2 border-border",
+    gradient: "gradient-border glass",
+    bordered: "glass-strong",
+    subtle: "glass-subtle",
+    dark: "glass-dark",
   };
 
   return (
     <div 
       className={cn(
-        "rounded-lg p-4",
+        "rounded-xl p-4",
         variants[variant],
         hover && "card-hover cursor-pointer",
         onClick && "cursor-pointer",
