@@ -132,11 +132,11 @@ const Auth = () => {
   if (user && profile && !profile.is_approved) {
     return (
       <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative overflow-hidden">
-        <div className="fixed inset-0 bg-grid-pattern bg-grid opacity-[0.02] pointer-events-none" />
-        <div className="absolute top-1/4 -left-32 w-64 h-64 bg-primary/20 rounded-full blur-[100px]" />
-        <div className="absolute bottom-1/4 -right-32 w-64 h-64 bg-accent/20 rounded-full blur-[100px]" />
+        <div className="fixed inset-0 bg-grid-pattern bg-grid opacity-[0.015] pointer-events-none" />
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/15 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-[120px]" />
         
-        <div className="w-full max-w-md glass-strong rounded-2xl p-8 border border-border text-center">
+        <div className="w-full max-w-md glass-dark rounded-2xl p-8 border border-border/50 text-center relative">
           <div className="w-16 h-16 bg-warning/20 rounded-full flex items-center justify-center mx-auto mb-4">
             <Shield className="w-8 h-8 text-warning" />
           </div>
@@ -168,12 +168,13 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4 relative overflow-hidden">
-      {/* Background Pattern */}
-      <div className="fixed inset-0 bg-grid-pattern bg-grid opacity-[0.02] pointer-events-none" />
-      
-      {/* Glow effects */}
-      <div className="absolute top-1/4 -left-32 w-64 h-64 bg-primary/20 rounded-full blur-[100px]" />
-      <div className="absolute bottom-1/4 -right-32 w-64 h-64 bg-accent/20 rounded-full blur-[100px]" />
+      {/* Background Effects */}
+      <div className="fixed inset-0 bg-grid-pattern bg-grid opacity-[0.015] pointer-events-none" />
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/15 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-[120px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[150px]" />
+      </div>
       
       {/* Logo */}
       <div className="flex items-center gap-3 mb-8 animate-fade-in">
@@ -186,7 +187,7 @@ const Auth = () => {
       </div>
       
       {/* Auth Card */}
-      <div className="w-full max-w-md glass-strong rounded-2xl p-8 border border-border animate-slide-up">
+      <div className="w-full max-w-md glass-dark rounded-2xl p-8 border border-border/50 animate-slide-up relative">
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold text-foreground mb-2">
             {isLogin ? 'Welcome Back' : 'Create Account'}

@@ -122,7 +122,7 @@ export function Navbar({ activeTab, setActiveTab, userData }: NavbarProps) {
   };
 
   return (
-    <nav className="sticky top-0 z-50 glass-strong border-b border-border">
+    <nav className="sticky top-0 z-50 glass-dark border-b border-border/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -164,7 +164,7 @@ export function Navbar({ activeTab, setActiveTab, userData }: NavbarProps) {
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-48 bg-secondary border border-border rounded-lg pl-9 pr-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary transition-colors"
+                className="w-48 input-glass rounded-xl pl-9 pr-3 py-1.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none transition-all"
               />
             </div>
 
@@ -183,7 +183,7 @@ export function Navbar({ activeTab, setActiveTab, userData }: NavbarProps) {
               </button>
 
               {isNotificationsOpen && (
-                <div className="absolute right-0 mt-2 w-80 glass-strong rounded-xl shadow-2xl border border-border animate-scale-in overflow-hidden">
+                <div className="absolute right-0 mt-2 w-80 glass-dark rounded-2xl shadow-2xl border border-border/50 animate-scale-in overflow-hidden">
                   <div className="p-3 border-b border-border flex justify-between items-center">
                     <h4 className="font-bold text-foreground">Notifications</h4>
                     {unreadCount > 0 && (
@@ -244,7 +244,7 @@ export function Navbar({ activeTab, setActiveTab, userData }: NavbarProps) {
               </button>
 
               {isProfileOpen && (
-                <div className="absolute right-0 mt-2 w-56 glass-strong rounded-xl shadow-2xl border border-border animate-scale-in overflow-hidden">
+                <div className="absolute right-0 mt-2 w-56 glass-dark rounded-2xl shadow-2xl border border-border/50 animate-scale-in overflow-hidden">
                   <div className="p-4 border-b border-border">
                     <div className="flex items-center gap-3">
                       <UserAvatar name={userData.name} size="lg" status="online" src={profile?.avatar_url || undefined} />

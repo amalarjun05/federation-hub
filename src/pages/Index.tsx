@@ -38,8 +38,12 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/30 selection:text-foreground">
-      {/* Background Pattern */}
-      <div className="fixed inset-0 bg-grid-pattern bg-grid opacity-[0.02] pointer-events-none" />
+      {/* Background Effects */}
+      <div className="fixed inset-0 bg-grid-pattern bg-grid opacity-[0.015] pointer-events-none" />
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/8 rounded-full blur-[120px]" />
+      </div>
       
       {/* Navigation */}
       <Navbar 
