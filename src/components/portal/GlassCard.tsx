@@ -30,10 +30,10 @@ export function GlassCard({
   return (
     <div 
       className={cn(
-        "rounded-xl p-4",
+        "rounded-2xl p-4 transition-all duration-300",
         variants[variant],
-        hover && "card-hover cursor-pointer",
-        onClick && "cursor-pointer",
+        hover && "card-hover cursor-pointer glow-hover",
+        onClick && "cursor-pointer glow-hover",
         className
       )} 
       onClick={onClick}
